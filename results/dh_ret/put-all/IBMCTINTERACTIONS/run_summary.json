@@ -1,0 +1,15 @@
+{
+  "out_dir": "results/dh_ret/put-all/IBMCTINTERACTIONS",
+  "monthly_dir": "results/dh_ret/put-all/IBMCTINTERACTIONS/monthly",
+  "rows_loaded": 13142,
+  "rows_after_filters": 6279,
+  "expanding_eval": {
+    "enabled": true,
+    "freq": "M",
+    "min_train_months": 38,
+    "months_total": 44,
+    "steps_run": 6,
+    "predictions_path": "results/dh_ret/put-all/IBMCTINTERACTIONS/predictions_expanding.csv",
+    "monthly_dir": "results/dh_ret/put-all/IBMCTINTERACTIONS/monthly"
+  }
+}

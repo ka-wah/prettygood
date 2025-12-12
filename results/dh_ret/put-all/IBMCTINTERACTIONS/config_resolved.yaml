@@ -1,0 +1,767 @@
+benchmark: zero
+contracts:
+  atm_band:
+  - -1.0
+  - 1.0
+  moneyness: all
+  type: put
+data:
+  date_col: date
+  exclusions_by_target:
+    y_gamma: []
+    y_vega:
+    - price_per_vega
+  feature_groups:
+    B:
+    - atm_iv
+    - atm_term_slope
+    - smile_slope
+    - convexity_proxy
+    - rr25_proxy
+    - bf25_proxy
+    - ivrv_ratio_pred
+    - d_iv_atm
+    - atm_ivchg_proxy
+    - dist_to_wall
+    - ddist_to_wall
+    - gex_proxy
+    - dgex_proxy
+    - ddist_to_wall_date
+    - dgex_proxy_date
+    - oi_herf_date
+    - log_pcr_oi_opt
+    - d_log_pcr_oi_opt
+    C:
+    - log1p_spot_inflow_total
+    - log1p_spot_outflow_total
+    - asinh_spot_netflow_total
+    - log1p_spot_reserve_usd
+    - log1p_spot_transactions_count_inflow
+    - log1p_spot_transactions_count_outflow
+    - addresses_count_active
+    - d_log1p_spot_inflow_total
+    - d_log1p_spot_outflow_total
+    - d_asinh_spot_netflow_total
+    - d_log1p_spot_reserve_usd
+    - d_log1p_spot_transactions_count_inflow
+    - d_log1p_spot_transactions_count_outflow
+    - log1p_der_inflow_total
+    - d_log1p_der_inflow_total
+    - log1p_der_outflow_total
+    - d_log1p_der_outflow_total
+    - log1p_der_transactions_count_inflow
+    - d_log1p_der_transactions_count_inflow
+    - log1p_der_transactions_count_outflow
+    - d_log1p_der_transactions_count_outflow
+    - asinh_der_netflow_total
+    - d_asinh_der_netflow_total
+    I:
+    - moneyness_std
+    - tau
+    - is_call
+    - delta_model
+    - theta_model
+    - gamma_model
+    - vega_model
+    - iv
+    - log_mid_t
+    - opt_rel_spread_final
+    - opt_rel_spread_chg
+    - baspread_chg
+    - log_open_interest_opt
+    - d_log_open_interest_opt
+    INTERACTIONS:
+    - d_funding_rates_x_mny
+    - d_funding_rates_x_tau
+    - d_log1p_spot_inflow_total_x_mny
+    - d_log1p_spot_inflow_total_x_tau
+    - d_log_open_interest_x_mny
+    - d_log_open_interest_x_tau
+    - d_log_pcr_oi_x_mny
+    - d_log_pcr_oi_x_tau
+    M:
+    - rv_chg
+    - realskew_chg
+    - fut_baspread_chg
+    - fut_baspread_z
+    - log_taker_buy_sell_ratio
+    - log1p_taker_buy_volume
+    - log1p_long_liquidations_usd
+    - log1p_short_liquidations_usd
+    - d_log_taker_buy_sell_ratio
+    - d_log1p_taker_buy_volume
+    - d_log1p_long_liquidations_usd
+    - d_log1p_short_liquidations_usd
+    - basis
+    - d_basis
+    - funding_rates
+    - d_funding_rates
+    - log_estimated_leverage_ratio
+    - d_log_estimated_leverage_ratio
+    - log_open_interest
+    - d_log_open_interest
+    - log_pcr_oi
+    - d_log_pcr_oi
+    - futmom_5
+    - futmom_10
+    - futmom_21
+    T:
+    - z_gt
+    - reddit_pos_z
+    - reddit_neg_z
+    - reddit_neu_z
+  features: []
+  group_col: date
+  moneyness_col: moneyness_std
+  option_type_col: is_call
+  shift_features:
+    enabled: false
+    force_all: false
+    only_date_constant: true
+  target: dh_ret
+  target_guardrails:
+    transform:
+      enabled: false
+      kind: asinh
+      scale:
+        method: mad
+    winsorize:
+      enabled: true
+      fit_on: train
+      lower_q: 0.01
+      upper_q: 0.99
+  target_norm:
+    abs: true
+    floor: 1e-6
+    kind: none
+experiment:
+  name: optml-main
+  seed: 0
+explain:
+  shap:
+    background_kmeans: 20
+    check_additivity: false
+    enabled: true
+    models:
+    - best
+    per_member: true
+    sample_rows: 500
+logging:
+  level: INFO
+  show_progress: true
+models:
+  enable:
+    linear:
+    - ridge
+    - lasso
+    - elasticnet
+    - pcr
+    - pls
+    nonlinear:
+    - rf
+    - lgbm_gbdt
+    - lgbm_dart
+    - ffn
+paths:
+  data: inputs/short.parquet
+  out_dir: results/dh_ret/put-all/IBMCTINTERACTIONS
+portfolio:
+  n_bins: 3
+preprocess:
+  linear_nn:
+    impute: median
+    min_non_null_frac: 0.6
+    standardize: true
+    variance_threshold: 1e-12
+    winsorize:
+      lower_q: 0.005
+      upper_q: 0.995
+    yeo_johnson: true
+  trees:
+    impute: median
+    min_non_null_frac: 0.2
+    standardize: false
+    variance_threshold: 1e-12
+    winsorize:
+      lower_q: 0.0
+      upper_q: 1.0
+    yeo_johnson: false
+split:
+  expanding_eval:
+    enabled: true
+    freq: M
+    min_train_months: 38
+  purge_gap: 1
+  scheme: time_ordered
+  test_frac: 0.15
+  train_frac: 0.7
+  val_frac: 0.15
+tuning:
+  build_family_ensemble: true
+  cv:
+    enabled: true
+    gap: 1
+    kind: time_grouped
+    min_train_size: 60
+    n_splits: 3
+    use_train_plus_val: true
+  keep_top_k: 2
+  n_iter: 128
+  seed: 0
+  spaces:
+    elasticnet:
+      alpha:
+        dist: loguniform
+        high: 1.0
+        low: 1e-6
+      l1_ratio:
+        dist: uniform
+        high: 1.0
+        low: 0.0
+      max_iter:
+        values:
+        - 10000
+    ffn:
+      activation:
+        values:
+        - relu
+        - tanh
+        - gelu
+      batch_size:
+        values:
+        - 512
+        - 1024
+      device:
+        values:
+        - auto
+      dropout:
+        dist: uniform
+        high: 0.3
+        low: 0.0
+      hidden_width:
+        values:
+        - 32
+        - 64
+        - 128
+      huber_delta:
+        values:
+        - 0.5
+        - 1.0
+        - 2.0
+      learning_rate:
+        values:
+        - 0.001
+        - 0.0005
+        - 0.0003
+        - 0.0001
+      loss:
+        values:
+        - mse
+      max_epochs:
+        values:
+        - 50
+        - 100
+      n_hidden_layers:
+        values:
+        - 1
+        - 2
+        - 3
+      patience:
+        values:
+        - 5
+        - 10
+        - 20
+      seed:
+        values:
+        - 0
+      val_split:
+        values:
+        - 0.1
+      weight_decay:
+        dist: loguniform
+        high: 1e-3
+        low: 1e-6
+      width_shrink:
+        values:
+        - 1.0
+        - 0.5
+    lasso:
+      alpha:
+        dist: loguniform
+        high: 1.0
+        low: 1e-6
+      max_iter:
+        values:
+        - 10000
+    lgbm_dart:
+      bagging_freq:
+        values:
+        - 1
+        - 10
+      colsample_bytree:
+        values:
+        - 0.8
+        - 1.0
+      drop_rate:
+        values:
+        - 0.05
+        - 0.1
+        - 0.15
+        - 0.2
+      learning_rate:
+        values:
+        - 0.003
+        - 0.005
+        - 0.01
+        - 0.02
+      max_bin:
+        values:
+        - 63
+        - 127
+        - 255
+      max_depth:
+        values:
+        - -1
+        - 3
+        - 4
+      max_drop:
+        values:
+        - 10
+        - 50
+      min_child_samples:
+        values:
+        - 50
+        - 100
+        - 200
+        - 400
+      min_child_weight:
+        values:
+        - 0.001
+        - 0.01
+        - 0.1
+      min_split_gain:
+        values:
+        - 0.0
+        - 0.05
+        - 0.1
+      n_estimators:
+        values:
+        - 800
+        - 1200
+        - 2000
+        - 3000
+      num_leaves:
+        values:
+        - 31
+        - 63
+        - 127
+      reg_alpha:
+        dist: loguniform
+        high: 10.0
+        low: 1e-6
+      reg_lambda:
+        dist: loguniform
+        high: 10.0
+        low: 1e-6
+      skip_drop:
+        values:
+        - 0.1
+        - 0.25
+        - 0.5
+      subsample:
+        values:
+        - 0.8
+        - 1.0
+      verbosity:
+        values:
+        - -1
+    lgbm_dart_huber:
+      bagging_freq:
+        values:
+        - 1
+        - 10
+      colsample_bytree:
+        values:
+        - 0.8
+        - 1.0
+      drop_rate:
+        values:
+        - 0.1
+        - 0.15
+        - 0.2
+      huber_delta:
+        values:
+        - 0.5
+        - 1.0
+        - 2.0
+      learning_rate:
+        values:
+        - 0.005
+        - 0.01
+        - 0.02
+        - 0.03
+      max_bin:
+        values:
+        - 63
+        - 127
+        - 255
+      max_depth:
+        values:
+        - -1
+        - 3
+        - 4
+      max_drop:
+        values:
+        - 10
+        - 50
+      min_child_samples:
+        values:
+        - 100
+        - 150
+        - 200
+        - 300
+      min_child_weight:
+        values:
+        - 0.001
+        - 0.01
+        - 0.1
+      min_split_gain:
+        values:
+        - 0.0
+        - 0.05
+        - 0.1
+      n_estimators:
+        values:
+        - 600
+        - 900
+        - 1200
+      num_leaves:
+        values:
+        - 15
+        - 31
+        - 63
+        - 127
+      reg_alpha:
+        dist: loguniform
+        high: 1.0
+        low: 1.0e-06
+      reg_lambda:
+        dist: loguniform
+        high: 1.0
+        low: 1.0e-06
+      skip_drop:
+        values:
+        - 0.1
+        - 0.25
+      subsample:
+        values:
+        - 0.8
+        - 1.0
+      verbosity:
+        values:
+        - -1
+    lgbm_gbdt:
+      bagging_freq:
+        values:
+        - 1
+        - 10
+      colsample_bytree:
+        values:
+        - 0.8
+        - 1.0
+      learning_rate:
+        values:
+        - 0.003
+        - 0.005
+        - 0.01
+        - 0.02
+      max_bin:
+        values:
+        - 63
+        - 127
+        - 255
+      max_depth:
+        values:
+        - -1
+        - 3
+        - 4
+      min_child_samples:
+        values:
+        - 50
+        - 100
+        - 200
+        - 400
+      n_estimators:
+        values:
+        - 800
+        - 1200
+        - 2000
+        - 3000
+      num_leaves:
+        values:
+        - 31
+        - 63
+        - 127
+      reg_alpha:
+        dist: loguniform
+        high: 10.0
+        low: 1e-6
+      reg_lambda:
+        dist: loguniform
+        high: 10.0
+        low: 1e-6
+      subsample:
+        values:
+        - 0.8
+        - 1.0
+      verbosity:
+        values:
+        - -1
+    lgbm_gbdt_huber:
+      bagging_freq:
+        values:
+        - 1
+        - 10
+      colsample_bytree:
+        values:
+        - 0.8
+        - 1.0
+      huber_delta:
+        values:
+        - 0.5
+        - 1.0
+        - 2.0
+      learning_rate:
+        values:
+        - 0.005
+        - 0.01
+        - 0.05
+        - 0.1
+      max_bin:
+        values:
+        - 63
+        - 127
+        - 255
+      max_depth:
+        values:
+        - -1
+        - 2
+        - 3
+      min_child_samples:
+        values:
+        - 150
+        - 200
+        - 300
+      min_child_weight:
+        values:
+        - 0.001
+        - 0.01
+        - 0.1
+      min_split_gain:
+        values:
+        - 0.0
+        - 0.05
+        - 0.1
+      n_estimators:
+        values:
+        - 600
+        - 900
+        - 1200
+      num_leaves:
+        values:
+        - 10
+        - 15
+        - 30
+        - 45
+      reg_alpha:
+        dist: loguniform
+        high: 1.0
+        low: 1.0e-06
+      reg_lambda:
+        dist: loguniform
+        high: 1.0
+        low: 1.0e-06
+      subsample:
+        values:
+        - 0.8
+        - 1.0
+      verbosity:
+        values:
+        - -1
+    ols: {}
+    pcr:
+      pca__n_components:
+        values:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+      ridge__alpha:
+        values:
+        - 0.0001
+        - 0.001
+        - 0.01
+        - 0.1
+        - 1.0
+    pls:
+      n_components:
+        values:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+    rf:
+      bootstrap:
+        values:
+        - true
+      max_depth:
+        values:
+        - 4
+        - 6
+        - 8
+        - 12
+      max_features:
+        values:
+        - sqrt
+        - log2
+      max_samples:
+        values:
+        - 0.5
+        - 0.7
+        - 0.9
+      min_samples_leaf:
+        values:
+        - 5
+        - 10
+        - 20
+        - 50
+      min_samples_split:
+        values:
+        - 2
+        - 5
+        - 10
+      n_estimators:
+        values:
+        - 600
+        - 1000
+        - 1500
+    ridge:
+      alpha:
+        dist: loguniform
+        high: 10.0
+        low: 1e-6
+      max_iter:
+        values:
+        - 10000
+  strategy: random
+_run_overrides:
+  label: side=put
+  groups:
+  - I
+  - B
+  - M
+  - C
+  - T
+  - INTERACTIONS
+  side: put
+  moneyness: all
+  atm_band: null
+  out_dir: results/dh_ret/put-all/IBMCTINTERACTIONS
+_resolved_features:
+- moneyness_std
+- tau
+- is_call
+- delta_model
+- theta_model
+- gamma_model
+- vega_model
+- iv
+- log_mid_t
+- opt_rel_spread_final
+- opt_rel_spread_chg
+- baspread_chg
+- log_open_interest_opt
+- d_log_open_interest_opt
+- atm_iv
+- atm_term_slope
+- smile_slope
+- convexity_proxy
+- rr25_proxy
+- bf25_proxy
+- ivrv_ratio_pred
+- d_iv_atm
+- atm_ivchg_proxy
+- dist_to_wall
+- ddist_to_wall
+- gex_proxy
+- dgex_proxy
+- ddist_to_wall_date
+- dgex_proxy_date
+- oi_herf_date
+- log_pcr_oi_opt
+- d_log_pcr_oi_opt
+- rv_chg
+- realskew_chg
+- fut_baspread_chg
+- fut_baspread_z
+- log_taker_buy_sell_ratio
+- log1p_taker_buy_volume
+- log1p_long_liquidations_usd
+- log1p_short_liquidations_usd
+- d_log_taker_buy_sell_ratio
+- d_log1p_taker_buy_volume
+- d_log1p_long_liquidations_usd
+- d_log1p_short_liquidations_usd
+- basis
+- d_basis
+- funding_rates
+- d_funding_rates
+- log_estimated_leverage_ratio
+- d_log_estimated_leverage_ratio
+- log_open_interest
+- d_log_open_interest
+- log_pcr_oi
+- d_log_pcr_oi
+- futmom_5
+- futmom_10
+- futmom_21
+- log1p_spot_inflow_total
+- log1p_spot_outflow_total
+- asinh_spot_netflow_total
+- log1p_spot_reserve_usd
+- log1p_spot_transactions_count_inflow
+- log1p_spot_transactions_count_outflow
+- addresses_count_active
+- d_log1p_spot_inflow_total
+- d_log1p_spot_outflow_total
+- d_asinh_spot_netflow_total
+- d_log1p_spot_reserve_usd
+- d_log1p_spot_transactions_count_inflow
+- d_log1p_spot_transactions_count_outflow
+- log1p_der_inflow_total
+- d_log1p_der_inflow_total
+- log1p_der_outflow_total
+- d_log1p_der_outflow_total
+- log1p_der_transactions_count_inflow
+- d_log1p_der_transactions_count_inflow
+- log1p_der_transactions_count_outflow
+- d_log1p_der_transactions_count_outflow
+- asinh_der_netflow_total
+- d_asinh_der_netflow_total
+- z_gt
+- reddit_pos_z
+- reddit_neg_z
+- reddit_neu_z
+- d_funding_rates_x_mny
+- d_funding_rates_x_tau
+- d_log1p_spot_inflow_total_x_mny
+- d_log1p_spot_inflow_total_x_tau
+- d_log_open_interest_x_mny
+- d_log_open_interest_x_tau
+- d_log_pcr_oi_x_mny
+- d_log_pcr_oi_x_tau
+_resolved_exclusions: []

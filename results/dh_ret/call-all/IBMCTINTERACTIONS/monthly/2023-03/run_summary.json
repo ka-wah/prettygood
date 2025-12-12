@@ -1,0 +1,31 @@
+{
+  "step_label": "train_to_2023-02__test_2023-03",
+  "train_end_month": "2023-02",
+  "test_month": "2023-03",
+  "n_train": 2455,
+  "n_val": 329,
+  "n_test": 585,
+  "n_test_used": 585,
+  "models_scored": [
+    "L-En",
+    "N-En",
+    "elasticnet#1",
+    "elasticnet#2",
+    "ffn#1",
+    "ffn#2",
+    "lasso#1",
+    "lasso#2",
+    "lgbm_dart#1",
+    "lgbm_dart#2",
+    "lgbm_gbdt#1",
+    "lgbm_gbdt#2",
+    "pcr#1",
+    "pcr#2",
+    "pls#1",
+    "pls#2",
+    "rf#1",
+    "rf#2",
+    "ridge#1",
+    "ridge#2"
+  ]
+}
