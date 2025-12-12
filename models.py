@@ -394,11 +394,13 @@ def _pls_spec() -> ModelSpec:
         kind="linear",
     )
 
+import os
+DEFAULT_NJOBS = int(os.environ.get("MODEL_NJOBS", "8"))
 
-def _rf_spec() -> ModelSpec:
+def _rf_spec(n_jobs: int = 8) -> ModelSpec:
     return ModelSpec(
         name="rf",
-        factory=lambda: RandomForestRegressor(random_state=0, n_jobs=-1),
+        factory=lambda: RandomForestRegressor(random_state=0, n_jobs=n_jobs),
         grid_default={
             "n_estimators": [300, 600, 900],
             "max_depth": [5, 8, 10],
@@ -426,7 +428,7 @@ def _gbr_like_specs() -> List[ModelSpec]:
         return [
             ModelSpec(
                 name="lgbm_gbdt",
-                factory=lambda: lgb.LGBMRegressor(boosting_type="gbdt", objective="regression", random_state=0),
+                factory=lambda: lgb.LGBMRegressor(boosting_type="gbdt", objective="regression", random_state=0, n_jobs=DEFAULT_NJOBS),
                 grid_default={**base_grid, "metric": ["l1"], "verbosity": [-1]},
                 kind="tree",
             ),
@@ -441,7 +443,7 @@ def _gbr_like_specs() -> List[ModelSpec]:
             ),
             ModelSpec(
                 name="lgbm_dart",
-                factory=lambda: lgb.LGBMRegressor(boosting_type="dart", objective="regression", random_state=0),
+                factory=lambda: lgb.LGBMRegressor(boosting_type="dart", objective="regression", random_state=0, n_jobs=DEFAULT_NJOBS),
                 grid_default={**base_grid,
                               "drop_rate": [0.05, 0.10, 0.20],
                               "max_drop": [10, 50],

@@ -187,17 +187,17 @@ models:
     linear:
       # - ols
       - ridge
-      # - lasso
-      # - elasticnet
-      # - pcr
-      # - pls
+      - lasso
+      - elasticnet
+      - pcr
+      - pls
     nonlinear:
-      # - rf
+      - rf
       - lgbm_gbdt
       # - lgbm_gbdt_huber      # ← NEW Huber GBDT model
       - lgbm_dart
       # - lgbm_dart_huber      # ← NEW Huber DART model
-      # - ffn
+      - ffn
 
 tuning:
   strategy: random
