@@ -201,14 +201,14 @@ models:
 
 tuning:
   strategy: random
-  n_iter: 1
-  keep_top_k: 1
+  n_iter: 128
+  keep_top_k: 2
   seed: 0
   build_family_ensemble: true
   cv:
     enabled: true
     kind: time_grouped
-    n_splits: 4
+    n_splits: 3
     gap: 1
     use_train_plus_val: true
     min_train_size: 60
@@ -409,7 +409,7 @@ tuning:
         values: [0.5, 1.0, 2.0]
     ffn:
       n_hidden_layers:
-        values: [1, 2]
+        values: [1, 2,3]
       hidden_width:
         values: [32, 64, 128]
       width_shrink:
@@ -427,11 +427,11 @@ tuning:
         low: 1e-6
         high: 1e-3
       max_epochs:
-        values: [100, 200]
+        values: [50, 100]
       batch_size:
-        values: [128, 256, 512]
+        values: [512, 1024]
       patience:
-        values: [10, 20]
+        values: [5,10, 20]
       val_split:
         values: [0.1]
       seed:
