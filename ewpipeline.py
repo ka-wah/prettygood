@@ -64,15 +64,23 @@ SHORT = 'input/input831.parquet'
 ULTRA = 'input/input17.parquet'
 
 
+# near top in __main__
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("--side", choices=["all", "call", "put"], default="all")
+args = parser.parse_args()
+
 RUNS = [
     RunSpec(
+        label=f"side={args.side}",
         base_config_path=CONFIG_PATH,
         data_path=SHORT,
         groups=GROUPS,
-        contracts_type="all",
+        contracts_type=args.side,
         contracts_mny="all",
     ),
 ]
+
 
 
 # =============================================================================
