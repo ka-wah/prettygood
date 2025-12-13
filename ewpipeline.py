@@ -60,7 +60,7 @@ MNY_BUCKETS = ["all", "otm", "itm", "atm"]
 GROUPS = ["I", "B", "M", "C", "T", "INTERACTIONS"]
 CONFIG_PATH = "./ew.yaml"
 
-SHORT = 'inputs/short.parquet'
+SHORT = 'new/input831.parquet'
 ULTRA = 'inputs/ultra.parquet'
 
 

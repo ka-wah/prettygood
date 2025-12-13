@@ -16,7 +16,7 @@ from scipy.optimize import brentq
 # ------------------------------ CONFIGURATION ------------------------------
 warnings.filterwarnings("ignore", category=UserWarning)
 
-FOLDER = "fuck10"  # <- align with your YAML paths
+FOLDER = "new"  # <- align with your YAML paths
 
 CONFIG = {
     "paths": {
@@ -1496,11 +1496,11 @@ def build_panel() -> pd.DataFrame:
         print("[WINSOR] Target y_price pooled.")
 
     # remove observations with dh_ret > 10 and print out how many were removed
-    if "dh_ret" in df_out.columns:
-        before_dh = len(df_out)
-        df_out = df_out[np.abs(to_num(df_out["dh_ret"])) <= CONFIG.get("DH_RET_FINAL_CAP", 10.0)].copy()
-        after_dh = len(df_out)
-        print(f"[TRIM] Final dh_ret cap -> dropped {before_dh - after_dh} rows, remaining {after_dh}.")
+    # if "dh_ret" in df_out.columns:
+    #     before_dh = len(df_out)
+    #     df_out = df_out[np.abs(to_num(df_out["dh_ret"])) <= CONFIG.get("DH_RET_FINAL_CAP", 10.0)].copy()
+    #     after_dh = len(df_out)
+    #     print(f"[TRIM] Final dh_ret cap -> dropped {before_dh - after_dh} rows, remaining {after_dh}.")
 
     # Distribution Diagnostics
     try:
