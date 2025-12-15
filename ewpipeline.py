@@ -60,7 +60,7 @@ MNY_BUCKETS = ["all", "otm", "itm", "atm"]
 GROUPS = ["I", "B", "M", "C", "T", "INTERACTIONS"]
 CONFIG_PATH = "./ew.yaml"
 
-SHORT = 'new/input831.parquet'
+SHORT = '0.8-spread/dhinput.parquet'
 ULTRA = 'inputs/ultra.parquet'
 
 
@@ -75,10 +75,42 @@ RUNS = [
         label=f"side={args.side}",
         base_config_path=CONFIG_PATH,
         data_path=SHORT,
-        groups=GROUPS,
+        groups=["I", "B", "M", "C", "T", "INTERACTIONS"],
         contracts_type=args.side,
         contracts_mny="all",
     ),
+    #     RunSpec(
+    #     label=f"side={args.side}",
+    #     base_config_path=CONFIG_PATH,
+    #     data_path=SHORT,
+    #     groups=["I", "B", "M", "C"],
+    #     contracts_type=args.side,
+    #     contracts_mny="all",
+    # ),
+    #     RunSpec(
+    #     label=f"side={args.side}",
+    #     base_config_path=CONFIG_PATH,
+    #     data_path=SHORT,
+    #     groups=["I", "B", "M"],
+    #     contracts_type=args.side,
+    #     contracts_mny="all",
+    # ),
+    #     RunSpec(
+    #     label=f"side={args.side}",
+    #     base_config_path=CONFIG_PATH,
+    #     data_path=SHORT,
+    #     groups=["I", "B"],
+    #     contracts_type=args.side,
+    #     contracts_mny="all",
+    # ),
+    #     RunSpec(
+    #     label=f"side={args.side}",
+    #     base_config_path=CONFIG_PATH,
+    #     data_path=SHORT,
+    #     groups=["I"],
+    #     contracts_type=args.side,
+    #     contracts_mny="all",
+    # )
 ]
 
 
@@ -116,6 +148,67 @@ def remove_handler(h: logging.Handler) -> None:
         h.close()
     except Exception:
         pass
+
+
+def log_pred_stats(y_true, y_pred, ids, model_name: str, *, top_q: float = 0.99) -> None:
+    y = np.asarray(y_true, dtype=float)
+    yhat = np.asarray(y_pred, dtype=float)
+
+    good = np.isfinite(y) & np.isfinite(yhat)
+    if good.sum() == 0:
+        LOG.info(f"[pred] {model_name}: no finite y/yhat")
+        return
+
+    y = y[good]
+    yhat = yhat[good]
+
+    mse = float(np.mean((y - yhat) ** 2))
+    mse0 = float(np.mean((y - 0.0) ** 2))
+    r2 = (1.0 - mse / mse0) if (np.isfinite(mse0) and mse0 > 0) else np.nan
+
+    def _p(a, q):
+        return float(np.percentile(a, q)) if a.size else np.nan
+
+    LOG.info(
+        f"[pred] {model_name}: n={y.size:,} R2_OS={r2:.5f} mse={mse:.6g} mse0={mse0:.6g} | "
+        f"y mean={y.mean():.3g} std={y.std(ddof=1):.3g} | "
+        f"yhat mean={yhat.mean():.3g} std={yhat.std(ddof=1):.3g} p1={_p(yhat,1):.3g} p99={_p(yhat,99):.3g}"
+    )
+
+    # --- fixed tail share ---
+    err = y - yhat
+    abs_err = np.abs(err)
+    thr = float(np.quantile(abs_err, top_q))
+    tail = abs_err >= thr
+
+    sse_total = float(np.sum(err ** 2))
+    sse_tail = float(np.sum(err[tail] ** 2))
+    share_tail = (sse_tail / sse_total) if (sse_total > 0 and np.isfinite(sse_total)) else np.nan
+
+    LOG.info(
+        f"[pred] {model_name}: |err| q{int(top_q*100)}={thr:.6g}  "
+        f"tail_n={int(tail.sum())}/{y.size}  tail_share_SSE={share_tail:.2%}"
+    )
+
+    # per-day MSE distribution
+    g = pd.to_datetime(pd.Series(np.asarray(ids)[good]), errors="coerce").dt.normalize()
+    if g.isna().all():
+        LOG.info(f"[pred] {model_name}: ids not datetime-like; skipping per-day diagnostics")
+        return
+
+    df = pd.DataFrame({"g": g, "e2": err ** 2})
+    per_day = df.groupby("g", sort=True)["e2"].mean()
+
+    LOG.info(
+        f"[pred] {model_name}: per-day mse days={per_day.size:,} "
+        f"p50={per_day.quantile(0.50):.6g} p90={per_day.quantile(0.90):.6g} "
+        f"p99={per_day.quantile(0.99):.6g} max={per_day.max():.6g}"
+    )
+
+    worst = per_day.sort_values(ascending=False).head(5)
+    worst_str = ", ".join([f"{d.date()}:{v:.3g}" for d, v in worst.items()])
+    print(f"[pred] {model_name}: worst_days_mse: {worst_str}")
+
 
 
 # =============================================================================
@@ -1126,17 +1219,24 @@ def fit_family(
                 clsname = est.__class__.__name__.lower()
                 is_lgbm = clsname.startswith("lgbm")
                 if is_lgbm:
-                    fit_kwargs = dict(eval_set=[(Xva, zva)], eval_metric="l2")
-                    if w_va is not None:
-                        fit_kwargs["eval_sample_weight"] = [np.asarray(w_va)]
-                    try:
-                        import lightgbm as lgb
-                        fit_kwargs["callbacks"] = [
-                            lgb.early_stopping(stopping_rounds=32, first_metric_only=True, verbose=False),
-                            lgb.log_evaluation(period=0),
-                        ]
-                    except Exception:
-                        pass
+                    # For huber objectives, skip early stopping (it was collapsing to 1–4 trees)
+                    name_lower = name.lower()
+                    use_early_stop = "huber" not in name_lower
+
+                    fit_kwargs = {}
+                    if use_early_stop:
+                        fit_kwargs = dict(eval_set=[(Xva, zva)], eval_metric="l2")
+                        if w_va is not None:
+                            fit_kwargs["eval_sample_weight"] = [np.asarray(w_va)]
+                        try:
+                            import lightgbm as lgb
+                            fit_kwargs["callbacks"] = [
+                                lgb.early_stopping(stopping_rounds=32, first_metric_only=True, verbose=False),
+                                lgb.log_evaluation(period=0),
+                            ]
+                        except Exception:
+                            pass
+
                     try:
                         est.set_params(verbose=-1)
                     except Exception:
@@ -1145,6 +1245,7 @@ def fit_family(
                         est.set_params(verbosity=-1)
                     except Exception:
                         pass
+
                     try:
                         est.fit(
                             Xtr,
@@ -2189,9 +2290,6 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
     LOG.info("=== Variant: %s ===", variant_label)
     LOG.info("Output dir: %s", base_out_dir)
 
-    # Folder layout you want:
-    # results/dh_ret/all-all/IBMCTINTERACTIONS/                <- aggregate outputs live here
-    # results/dh_ret/all-all/IBMCTINTERACTIONS/monthly/        <- per-step outputs live here
     monthly_root = ensure_dir(os.path.join(base_out_dir, "monthly"))
 
     fh_variant = add_file_logger(
@@ -2219,7 +2317,6 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
         tr_frac = float(split_cfg.get("train_frac", 0.70))
         va_frac = float(split_cfg.get("val_frac", 0.15))
 
-        # Target kind (only used for extra columns; metrics use y_target anyway)
         tname = str(target_col).lower()
         if "vega" in tname:
             target_kind = "per_vega"
@@ -2228,13 +2325,19 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
         else:
             target_kind = "per_dollar"
 
-        # Load and filter
         df_raw = load_data(data_path)
         df_raw = add_moneyness_std(df_raw)
         LOG.info("Loaded data: %d rows, %d cols", *df_raw.shape)
 
         df = apply_contract_filters(df_raw, cfg)
         LOG.info("After contract filters: %d rows", len(df))
+
+        exclude_modeled = _as_bool(cfg.get("data", {}).get("exclude_modeled_vtp1", False), False)
+        if exclude_modeled and "V_tp1_modeled_flag" in df.columns:
+            n_before = len(df)
+            df = df[df["V_tp1_modeled_flag"] != 1].copy()
+            n_dropped = n_before - len(df)
+            LOG.info("Excluded %d rows with modeled V_tp1 (%d remaining)", n_dropped, len(df))
 
         num_cols = df.select_dtypes(include=[np.number]).columns
         if len(num_cols) > 0:
@@ -2256,7 +2359,6 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 force_all=bool(shift_cfg.get("force_all", False)),
             )
 
-        # Feature routing by family
         inter_cols = set((cfg.get("data", {}).get("feature_groups") or {}).get("INTERACTIONS", []))
         feat_cols_lin = list(feat_cols)
         feat_cols_non = [c for c in feat_cols if c not in inter_cols]
@@ -2268,12 +2370,10 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
         if missing:
             raise KeyError(f"Missing columns in data: {missing}")
 
-        # Sort by time
         df = df.copy()
         df[date_col] = pd.to_datetime(df[date_col]).dt.normalize()
         df = df.sort_values(date_col).reset_index(drop=True)
 
-        # Monthly periods in the filtered panel
         if exp_freq != "M":
             raise ValueError(f"Only monthly freq is implemented (freq='M'). Got: {exp_freq}")
 
@@ -2290,10 +2390,8 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
             exp_enabled, exp_freq, min_train_months, len(months)
         )
 
-        # ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
         # Step runner: trains on (train, val), tests on exactly one month
-        # Writes EVERYTHING into: base_out_dir/monthly/<YYYY-MM>/
-        # Returns prediction frame (for that month) + step summary + N-En shap inputs for final-step SHAP
         # ---------------------------------------------------------------------
         def _run_one_step(
             *,
@@ -2310,6 +2408,11 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 os.path.join(step_out_dir, "run.log"),
                 level=cfg.get("logging", {}).get("level", "INFO"),
             )
+            
+            # Initialize return variables to satisfy linters/safety
+            step_summary = {}
+            shap_payload = {}
+            best_by_algo = {} 
 
             try:
                 LOG.info("=== Expanding step: %s ===", step_label)
@@ -2317,7 +2420,7 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 LOG.info("train_end=%s | test_month=%s", step_train_end, step_test_month)
                 LOG.info("Split sizes: train=%d | val=%d | test=%d", len(df_tr), len(df_va), len(df_te))
 
-                # Design matrices
+                # --- 1. PREPARE DATA ---
                 X_tr_lin_raw = df_tr[feat_cols_lin].to_numpy(dtype=float)
                 X_va_lin_raw = df_va[feat_cols_lin].to_numpy(dtype=float)
                 X_te_lin_raw = df_te[feat_cols_lin].to_numpy(dtype=float)
@@ -2335,7 +2438,7 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 d_tr = pd.to_datetime(df_tr[date_col].to_numpy())
                 d_va = pd.to_datetime(df_va[date_col].to_numpy())
 
-                # Target normalisation + guardrails
+                # --- 2. TARGET NORMALIZATION & GUARDRAILS ---
                 tn_cfg = (cfg.get("data", {}).get("target_norm") or {"kind": "none"})
                 normaliser = TargetNormalizer(
                     kind=tn_cfg.get("kind", "none"),
@@ -2354,7 +2457,7 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 z_va = guard.forward(y_va_model)
                 z_te_all = guard.forward(y_te_model_all)
 
-                # Preprocessing
+                # --- 3. FEATURE PREPROCESSING ---
                 pp_cfg = cfg.get("preprocess", {}) or {}
 
                 pp_linear = preprocess_fit(X_tr_lin_raw, pp_cfg.get("linear_nn", {}))
@@ -2377,25 +2480,20 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 feat_names_ffn = feature_names_after_pp(pp_ffn, feat_cols_lin)
                 feat_names_non = feature_names_after_pp(pp_trees, feat_cols_non)
 
-                # Filter non-finite y; align
+                # --- 4. FILTER FINITE Y ---
                 X_tr_lin, z_tr, d_tr, _, mask_tr = _filter_finite_y(X_tr_lin, z_tr, d_tr, split_name="train")
                 X_va_lin, z_va, d_va, _, mask_va = _filter_finite_y(X_va_lin, z_va, d_va, split_name="val")
                 X_te_lin, z_te, ids_te, _, mask_te = _filter_finite_y(X_te_lin, z_te_all, ids_te_all, split_name="test")
 
-                X_tr_ffn = X_tr_ffn[mask_tr]
-                X_va_ffn = X_va_ffn[mask_va]
-                X_te_ffn = X_te_ffn[mask_te]
-
-                X_tr_non = X_tr_non[mask_tr]
-                X_va_non = X_va_non[mask_va]
-                X_te_non = X_te_non[mask_te]
+                X_tr_ffn, X_va_ffn, X_te_ffn = X_tr_ffn[mask_tr], X_va_ffn[mask_va], X_te_ffn[mask_te]
+                X_tr_non, X_va_non, X_te_non = X_tr_non[mask_tr], X_va_non[mask_va], X_te_non[mask_te]
 
                 y_te_target = y_te_target_all[mask_te]
                 y_te_raw = y_te_raw_all[mask_te]
                 g_te = g_te_all[mask_te]
                 y_te_target_winsor = winsor_aligned_target(y_te_target, g_te, guard)
 
-                # Registry and model lists
+                # --- 5. SETUP CV ---
                 registry = registry_from_yaml(cfg)
                 enable = cfg["models"]["enable"]
                 linear_list = [m for m in enable.get("linear", []) if m in registry]
@@ -2403,7 +2501,6 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 trees_list = [m for m in nonlinear_list if registry[m].kind == "tree"]
                 nn_list = [m for m in nonlinear_list if registry[m].kind == "nn"]
 
-                # Target-space scoring support for CV
                 _, g_tr_all = normaliser.apply(y_tr_target, df_tr, target_col=target_col)
                 _, g_va_all = normaliser.apply(y_va_target, df_va, target_col=target_col)
                 g_tr_f = g_tr_all[mask_tr]
@@ -2422,97 +2519,71 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 def _inverse_to_target(z_pred_val, va_idx):
                     return normaliser.invert(guard.inverse(z_pred_val), g_cv[va_idx])
 
-                # CV / training
                 tcfg = cfg.get("tuning", {})
-                strategy = tcfg.get("strategy", "random")
-                n_iter = int(tcfg.get("n_iter", 1))
-                keep_top_k = int(tcfg.get("keep_top_k", 1))
-                seed = int(tcfg.get("seed", 0))
                 cv_cfg = (tcfg.get("cv") or {})
-
+                strategy, n_iter, keep_top_k, seed = tcfg.get("strategy", "random"), int(tcfg.get("n_iter", 1)), int(tcfg.get("keep_top_k", 1)), int(tcfg.get("seed", 0))
                 cv_records: List[Dict[str, Any]] = []
 
+                # --- 6. TRAINING ---
                 LOG.info("Training linear: %s", linear_list)
                 models_lin = fit_family(
-                    registry, X_tr_lin, z_tr, X_va_lin, z_va,
-                    linear_list, strategy, n_iter, keep_top_k, seed,
-                    cv_records, d_tr, d_va, cv_cfg,
-                    inverse_to_target_fn=_inverse_to_target, y_cv_target=y_cv_target,
+                    registry, X_tr_lin, z_tr, X_va_lin, z_va, linear_list, strategy, n_iter, keep_top_k, seed,
+                    cv_records, d_tr, d_va, cv_cfg, inverse_to_target_fn=_inverse_to_target, y_cv_target=y_cv_target,
                 )
 
                 LOG.info("Training FFN: %s", nn_list)
                 models_nn = fit_family(
-                    registry, X_tr_ffn, z_tr, X_va_ffn, z_va,
-                    nn_list, strategy, n_iter, keep_top_k, seed,
-                    cv_records, d_tr, d_va, cv_cfg,
-                    inverse_to_target_fn=_inverse_to_target, y_cv_target=y_cv_target,
+                    registry, X_tr_ffn, z_tr, X_va_ffn, z_va, nn_list, strategy, n_iter, keep_top_k, seed,
+                    cv_records, d_tr, d_va, cv_cfg, inverse_to_target_fn=_inverse_to_target, y_cv_target=y_cv_target,
                 )
 
                 LOG.info("Training trees: %s", trees_list)
                 models_trees = fit_family(
-                    registry, X_tr_non, z_tr, X_va_non, z_va,
-                    trees_list, strategy, n_iter, keep_top_k, seed,
-                    cv_records, d_tr, d_va, cv_cfg,
-                    inverse_to_target_fn=_inverse_to_target, y_cv_target=y_cv_target,
+                    registry, X_tr_non, z_tr, X_va_non, z_va, trees_list, strategy, n_iter, keep_top_k, seed,
+                    cv_records, d_tr, d_va, cv_cfg, inverse_to_target_fn=_inverse_to_target, y_cv_target=y_cv_target,
                 )
 
-                # Optional linear family ensemble
                 build_ens = bool(cfg.get("tuning", {}).get("build_family_ensemble", True))
                 if build_ens and models_lin:
                     models_lin["L-En"] = build_equal_weight_ensemble(list(models_lin.keys()), models_lin)
 
-                # Test predictions (ALL models)
+                # --- 7. PREDICTION ---
                 preds_in_target_units: Dict[str, np.ndarray] = {}
 
-                for name, m in models_lin.items():
-                    z_hat = m.predict(X_te_lin)
-                    y_hat = TargetNormalizer.invert(guard.inverse(z_hat), g_te)
-                    preds_in_target_units[name] = y_hat
+                for grp_name, models_grp, X_te_grp in [
+                    ("lin", models_lin, X_te_lin), ("nn", models_nn, X_te_ffn), ("trees", models_trees, X_te_non)
+                ]:
+                    for name, m in models_grp.items():
+                        z_hat = m.predict(X_te_grp)
+                        if guard.enabled_winsor and guard._lo is not None and guard._hi is not None:
+                            z_hat = np.clip(z_hat, guard._lo, guard._hi)
+                        y_hat = TargetNormalizer.invert(guard.inverse(z_hat), g_te)
+                        preds_in_target_units[name] = y_hat
+                        log_pred_stats(y_te_target, y_hat, ids_te, model_name=name)
 
-                for name, m in models_nn.items():
-                    z_hat = m.predict(X_te_ffn)
-                    y_hat = TargetNormalizer.invert(guard.inverse(z_hat), g_te)
-                    preds_in_target_units[name] = y_hat
-
-                for name, m in models_trees.items():
-                    z_hat = m.predict(X_te_non)
-                    y_hat = TargetNormalizer.invert(guard.inverse(z_hat), g_te)
-                    preds_in_target_units[name] = y_hat
-
-                # Prediction-space nonlinear ensemble N-En (mean of available base algos)
+                # N-En
                 nonlin_base_pred = {"rf", "lgbm_gbdt", "lgbm_dart", "ffn"}
-                nonlin_member_names_pred = [
-                    nm for nm in preds_in_target_units.keys()
-                    if nm.split("#", 1)[0] in nonlin_base_pred
-                ]
+                nonlin_member_names_pred = [nm for nm in preds_in_target_units.keys() if nm.split("#", 1)[0] in nonlin_base_pred]
                 if nonlin_member_names_pred:
                     nl_stack = np.column_stack([preds_in_target_units[nm] for nm in nonlin_member_names_pred])
                     preds_in_target_units["N-En"] = nl_stack.mean(axis=1)
 
-                # Exports (per step)
+                # Exports
                 export_models_table(models_lin, "linear", step_out_dir)
                 export_models_table({**models_nn, **models_trees}, "nonlinear", step_out_dir)
                 export_linear_coefficients(models_lin, feat_names_lin, step_out_dir)
                 if cv_records:
                     pd.DataFrame(cv_records).to_csv(os.path.join(step_out_dir, "cv_results.csv"), index=False)
 
-                # Build predictions frame
-                aux_candidates = ["vega_1volpt", "mid_t", "opt_rel_spread_final", "abs_delta", tcol, mcol, "tau", "atm_iv"]
+                aux_candidates = ["dte", "vega_1volpt", "mid_t", "opt_rel_spread_final", "abs_delta", tcol, mcol, "tau", "atm_iv"]
                 pred_df = build_predictions_frame(
-                    ids_te=ids_te,
-                    y_te_target=y_te_target,
-                    y_te_raw=y_te_raw,
-                    preds_in_target_units=preds_in_target_units,
-                    df_te=df_te,
-                    mask_te=mask_te,
-                    aux_candidates=aux_candidates,
+                    ids_te=ids_te, y_te_target=y_te_target, y_te_raw=y_te_raw, preds_in_target_units=preds_in_target_units,
+                    df_te=df_te, mask_te=mask_te, aux_candidates=aux_candidates,
                 )
                 pred_df["step_label"] = step_label
                 pred_df["train_end_month"] = step_train_end
                 pred_df["test_month"] = step_test_month
 
-                # Optional extra columns (kept consistent with your earlier code)
-                eps = 1e-10
                 if target_kind == "per_dollar" and "mid_t" in df_te.columns:
                     mid_te = df_te.loc[mask_te, "mid_t"].to_numpy(dtype=float)
                     for nm, yhat in preds_in_target_units.items():
@@ -2521,68 +2592,54 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
 
                 pred_df.to_csv(os.path.join(step_out_dir, "predictions.csv"), index=False)
 
-                # Per-step metrics ON ALL MODELS (like you asked)
-                export_metrics(
-                    y_te_target,
-                    preds_in_target_units,
-                    pd.to_datetime(ids_te).to_numpy(),
-                    step_out_dir,
-                    y_true_winsor_aligned=y_te_target_winsor,
-                    filename="metrics.csv",
-                )
+                export_metrics(y_te_target, preds_in_target_units, pd.to_datetime(ids_te).to_numpy(), step_out_dir, y_true_winsor_aligned=y_te_target_winsor, filename="metrics.csv")
                 export_diag_all(y_te_target, y_te_raw, preds_in_target_units, step_out_dir, pd.to_datetime(ids_te).to_numpy())
+                print(f"[baseline] TE: mse0={np.mean(y_te_target**2):.6g} mean(y)={np.mean(y_te_target):.3g} std(y)={np.std(y_te_target):.3g}")
 
-                # Per-step SHAP: N-En only (if present)
-                if ("N-En" in preds_in_target_units) and bool((cfg.get("explain", {}).get("shap", {}) or {}).get("enabled", True)):
-                    # Build best_by_algo for choosing concrete base models inside export_shap_n_en
-                    def _base_algo(nm: str) -> str:
-                        return nm.split("#", 1)[0]
+                # --- 8. SHAP (Per Step) ---
+                shap_cfg = (cfg.get("explain", {}).get("shap", {}) or {})
+                shap_enabled = bool(shap_cfg.get("enabled", True))
+                run_all_shap = ("all" in shap_cfg.get("models", ["best"]))
 
+                if shap_enabled:
+                    shap_out_dir = ensure_dir(os.path.join(step_out_dir, "SHAP"))
+                    
+                    # Compute best_by_algo
+                    def _base_algo(nm: str) -> str: return nm.split("#", 1)[0]
                     r2_test = {nm: r2_os(y_te_target, yhat) for nm, yhat in preds_in_target_units.items()}
-                    best_by_algo: Dict[str, Tuple[float, str]] = {}
                     for nm, score in r2_test.items():
                         base = _base_algo(nm)
                         if (base not in best_by_algo) or (score > best_by_algo[base][0]):
                             best_by_algo[base] = (score, nm)
 
-                    export_shap_n_en(
-                        all_models={**models_trees, **models_nn},
-                        best_by_algo=best_by_algo,
-                        X_te_non=X_te_non,
-                        X_te_ffn=X_te_ffn,
-                        df_te=df_te,
-                        mask_te=mask_te,
-                        feat_names_non=feat_names_non,
-                        feat_names_ffn=feat_names_ffn,
-                        out_dir=ensure_dir(os.path.join(step_out_dir, "SHAP")),
-                        cfg=cfg,
-                    )
-                else:
-                    best_by_algo = {}
+                    if run_all_shap:
+                        LOG.info("[SHAP] Computing SHAP for all individual models...")
+                        for name in models_lin.keys(): try_export_shap(models_lin, X_te_lin, feat_names_lin, shap_out_dir, name, cfg)
+                        for name in models_nn.keys(): try_export_shap(models_nn, X_te_ffn, feat_names_ffn, shap_out_dir, name, cfg)
+                        for name in models_trees.keys(): try_export_shap(models_trees, X_te_non, feat_names_non, shap_out_dir, name, cfg)
+                    
+                    if "N-En" in preds_in_target_units:
+                        export_shap_n_en(
+                            all_models={**models_trees, **models_nn}, best_by_algo=best_by_algo,
+                            X_te_non=X_te_non, X_te_ffn=X_te_ffn, df_te=df_te, mask_te=mask_te,
+                            feat_names_non=feat_names_non, feat_names_ffn=feat_names_ffn,
+                            out_dir=shap_out_dir, cfg=cfg,
+                        )
 
                 step_summary = {
-                    "step_label": step_label,
-                    "train_end_month": step_train_end,
-                    "test_month": step_test_month,
-                    "n_train": int(len(df_tr)),
-                    "n_val": int(len(df_va)),
-                    "n_test": int(len(df_te)),
-                    "n_test_used": int(len(pred_df)),
-                    "models_scored": sorted(list(preds_in_target_units.keys())),
+                    "step_label": step_label, "train_end_month": step_train_end, "test_month": step_test_month,
+                    "n_train": int(len(df_tr)), "n_val": int(len(df_va)), "n_test": int(len(df_te)),
+                    "n_test_used": int(len(pred_df)), "models_scored": sorted(list(preds_in_target_units.keys())),
                 }
                 with open(os.path.join(step_out_dir, "run_summary.json"), "w") as f:
                     json.dump(step_summary, f, indent=2, ensure_ascii=False, default=_safe_jsonable)
 
-                # Return extras needed for FINAL-step SHAP at root (optional)
                 shap_payload = {
-                    "all_models": {**models_trees, **models_nn},
+                    "all_models": {**models_lin, **models_trees, **models_nn},
                     "best_by_algo": best_by_algo,
-                    "X_te_non": X_te_non,
-                    "X_te_ffn": X_te_ffn,
-                    "df_te": df_te,
-                    "mask_te": mask_te,
-                    "feat_names_non": feat_names_non,
-                    "feat_names_ffn": feat_names_ffn,
+                    "X_te_lin": X_te_lin, "X_te_non": X_te_non, "X_te_ffn": X_te_ffn,
+                    "df_te": df_te, "mask_te": mask_te,
+                    "feat_names_lin": feat_names_lin, "feat_names_non": feat_names_non, "feat_names_ffn": feat_names_ffn,
                 }
                 return pred_df, step_summary, shap_payload
 
@@ -2590,11 +2647,110 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 remove_handler(fh_step)
 
         # ---------------------------------------------------------------------
-        # Expanding loop
+        # Single-split mode (original 70/15/15) OR Expanding loop
         # ---------------------------------------------------------------------
         if not exp_enabled:
-            raise ValueError("expanding_eval.enabled is false.")
+            # --- SINGLE ESTIMATION: 70 / 15 / 15 split ---
+            LOG.info("[single-split] Running single estimation (expanding_eval.enabled=false)")
 
+            df_tr, df_va, df_te = time_split(
+                df, date_col, tr=tr_frac, va=va_frac, purge_gap=purge_gap
+            )
+            if df_va.empty:
+                LOG.warning("[single-split] empty val after purge; retrying with purge_gap=0")
+                df_tr, df_va, df_te = time_split(df, date_col, tr=tr_frac, va=va_frac, purge_gap=0)
+
+            if df_te.empty:
+                raise ValueError("[single-split] Test set is empty after time_split.")
+
+            LOG.info(
+                "[single-split] Split sizes: train=%d | val=%d | test=%d",
+                len(df_tr), len(df_va), len(df_te),
+            )
+
+            # Use base_out_dir directly for outputs (no monthly/ subfolder)
+            pred_df, step_sum, last_shap_payload = _run_one_step(
+                step_out_dir=base_out_dir,
+                df_tr=df_tr,
+                df_va=df_va,
+                df_te=df_te,
+                step_label="single_split",
+                step_train_end="N/A",
+                step_test_month="N/A",
+            )
+
+            # Save predictions (rename to match expanding output name for consistency)
+            pred_df.to_csv(os.path.join(base_out_dir, "predictions.csv"), index=False)
+
+            # Aggregate metrics (same file as expanding would produce)
+            y_all = pred_df["y_target"].to_numpy(dtype=float)
+            ids_all = pd.to_datetime(pred_df["group"]).to_numpy()
+
+            model_cols = [
+                c for c in pred_df.columns
+                if c.startswith("yhat_")
+                and (not c.startswith("yhat_usd_"))
+                and (not c.startswith("yhat_per_dollar_"))
+            ]
+            preds_all_models: Dict[str, np.ndarray] = {}
+            for c in model_cols:
+                nm = c.replace("yhat_", "", 1)
+                preds_all_models[nm] = pred_df[c].to_numpy(dtype=float)
+
+            export_metrics(
+                y_all,
+                preds_all_models,
+                ids_all,
+                base_out_dir,
+                y_true_winsor_aligned=None,
+                filename="metrics.csv",
+            )
+
+            # Portfolio metrics
+            pf_out = ensure_dir(os.path.join(base_out_dir, "portfolio"))
+            export_portfolios_raw(
+                y=pred_df["y_target"].to_numpy(),
+                preds_scores={nm: pred_df[f"yhat_{nm}"].to_numpy() for nm in preds_all_models.keys()},
+                ids=pd.to_datetime(pred_df["group"]).to_numpy(),
+                out_dir=pf_out,
+                n_bins=int((cfg.get("portfolio", {}) or {}).get("n_bins", 3)),
+                normalize_group_to_day=True,
+                write_ic=True,
+            )
+
+            # Final SHAP (N-En only)
+            shap_conf = (cfg.get("explain", {}).get("shap", {}) or {})
+            if last_shap_payload is not None and bool(shap_conf.get("enabled", True)):
+                if "best_by_algo" in last_shap_payload and last_shap_payload["best_by_algo"]:
+                    final_shap_dir = ensure_dir(os.path.join(base_out_dir, "SHAP"))
+                    export_shap_n_en(
+                        out_dir=final_shap_dir,
+                        cfg=cfg,
+                        **last_shap_payload,
+                    )
+
+            summary_root.update(
+                {
+                    "single_split": {
+                        "enabled": True,
+                        "train_frac": tr_frac,
+                        "val_frac": va_frac,
+                        "test_frac": 1.0 - tr_frac - va_frac,
+                        "purge_gap": purge_gap,
+                        "n_train": int(len(df_tr)),
+                        "n_val": int(len(df_va)),
+                        "n_test": int(len(df_te)),
+                    }
+                }
+            )
+            with open(os.path.join(base_out_dir, "run_summary.json"), "w") as f:
+                json.dump(summary_root, f, indent=2, ensure_ascii=False, default=_safe_jsonable)
+
+            LOG.info("Single-split variant complete. Yay! :)")
+            return  # Exit early; skip expanding loop below
+
+
+        # --- EXPANDING WINDOW ESTIMATION ---
         all_preds: List[pd.DataFrame] = []
         step_summaries: List[Dict[str, Any]] = []
         last_shap_payload: Optional[Dict[str, Any]] = None
@@ -2613,26 +2769,13 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 LOG.info("[expanding] skip test_month=%s (no observations)", str(test_m))
                 continue
 
-            # 70/15 split *inside* the current expanding training window
-            df_tr, df_va, _ = time_split(
-                df_train_full,
-                date_col,
-                tr=tr_frac,
-                va=va_frac,
-                purge_gap=purge_gap,
-            )
+            df_tr, df_va, _ = time_split(df_train_full, date_col, tr=tr_frac, va=va_frac, purge_gap=purge_gap)
             if df_va.empty:
                 LOG.warning("[expanding] empty val after purge; retry purge_gap=0 for step %s", str(test_m))
-                df_tr, df_va, _ = time_split(
-                    df_train_full,
-                    date_col,
-                    tr=tr_frac,
-                    va=va_frac,
-                    purge_gap=0,
-                )
+                df_tr, df_va, _ = time_split(df_train_full, date_col, tr=tr_frac, va=va_frac, purge_gap=0)
 
             step_label = f"train_to_{str(train_end)}__test_{str(test_m)}"
-            step_out_dir = ensure_dir(os.path.join(monthly_root, str(test_m)))  # <-- monthly/<YYYY-MM>/
+            step_out_dir = ensure_dir(os.path.join(monthly_root, str(test_m)))
 
             pred_df_step, step_sum, shap_payload = _run_one_step(
                 step_out_dir=step_out_dir,
@@ -2652,7 +2795,7 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
             raise ValueError("No expanding-window steps produced predictions. Check date coverage after filters.")
 
         # ---------------------------------------------------------------------
-        # AGGREGATE OUTPUTS LIVE IN base_out_dir (NOT in aggregate/)
+        # AGGREGATE OUTPUTS
         # ---------------------------------------------------------------------
         pred_all = pd.concat(all_preds, axis=0, ignore_index=True)
         pred_all = pred_all.sort_values(["test_month", "group"], kind="stable").reset_index(drop=True)
@@ -2665,32 +2808,53 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
         with open(steps_path, "w") as f:
             json.dump(step_summaries, f, indent=2, ensure_ascii=False, default=_safe_jsonable)
         LOG.info("Wrote steps summary: %s", steps_path)
-        # Aggregate metrics ON ALL MODELS
+        
         y_all = pred_all["y_target"].to_numpy(dtype=float)
         ids_all = pd.to_datetime(pred_all["group"]).to_numpy()
 
-        model_cols = [
-            c for c in pred_all.columns
-            if c.startswith("yhat_")
-            and (not c.startswith("yhat_usd_"))
-            and (not c.startswith("yhat_per_dollar_"))
-        ]
+        model_cols = [c for c in pred_all.columns if c.startswith("yhat_") 
+                      and not c.startswith("yhat_usd_") and not c.startswith("yhat_per_dollar_")]
+        
+        # 1. Collect ALL models
         preds_all_models: Dict[str, np.ndarray] = {}
         for c in model_cols:
             nm = c.replace("yhat_", "", 1)
             preds_all_models[nm] = pred_all[c].to_numpy(dtype=float)
 
+        # 2. SELECT BEST-IN-CLASS (Filter out the losers)
+        r2_agg = {k: r2_os(y_all, v) for k, v in preds_all_models.items()}
+        base_algos_seen = set(k.split("#")[0] for k in preds_all_models.keys())
+        
+        preds_best_only: Dict[str, np.ndarray] = {}
+        best_models_list = []
+
+        LOG.info("[Selection] Choosing best model variant per family based on Aggregate R2_OS:")
+        for base in sorted(base_algos_seen):
+            variants = [k for k in preds_all_models.keys() if k.split("#")[0] == base]
+            if not variants:
+                continue
+            winner = max(variants, key=lambda k: r2_agg.get(k, -np.inf))
+            preds_best_only[winner] = preds_all_models[winner]
+            best_models_list.append(winner)
+            
+            r2_win = r2_agg.get(winner, -np.inf)
+            others = [v for v in variants if v != winner]
+            if others:
+                LOG.info(f"  > Family {base}: Winner={winner} (R2={r2_win:.4f}) | Dropped={others}")
+            else:
+                LOG.info(f"  > Family {base}: Winner={winner} (R2={r2_win:.4f}) | (Single variant)")
+
+        # 3. Export Aggregate Metrics (Best Models Only)
         export_metrics(
             y_all,
-            preds_all_models,
+            preds_best_only, 
             ids_all,
             base_out_dir,
             y_true_winsor_aligned=None,
             filename="metrics.csv",
         )
-         # -------------------------
-        # Metrics per day (wide) - DAILY (not expanding)
-        # -------------------------
+        
+        # 4. Metrics per day (Best Models Only)
         def _r2_os_cs_one_day(y: np.ndarray, yhat: np.ndarray) -> float:
             y = np.asarray(y, dtype=float)
             yhat = np.asarray(yhat, dtype=float)
@@ -2711,17 +2875,15 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
         pred_all_tmp = pred_all_tmp.dropna(subset=["_day"])
 
         days = np.array(sorted(pred_all_tmp["_day"].unique()))
-        models = sorted(list(preds_all_models.keys()))
+        # UPDATED: Use best_models_list instead of all models
+        models_day = sorted(best_models_list)
 
-        r2_day = pd.DataFrame(index=pd.to_datetime(days), columns=models, remember=True, dtype=float) \
-            if "remember" in pd.DataFrame.__init__.__code__.co_varnames else \
-            pd.DataFrame(index=pd.to_datetime(days), columns=models, dtype=float)
-
-        r2_day_xs = pd.DataFrame(index=pd.to_datetime(days), columns=models, dtype=float)
+        r2_day = pd.DataFrame(index=pd.to_datetime(days), columns=models_day, dtype=float)
+        r2_day_xs = pd.DataFrame(index=pd.to_datetime(days), columns=models_day, dtype=float)
 
         for day, d in pred_all_tmp.groupby("_day", sort=True):
             y = d["y_target"].to_numpy(dtype=float)
-            for nm in models:
+            for nm in models_day:
                 yhat = d[f"yhat_{nm}"].to_numpy(dtype=float)
                 r2_day.loc[pd.Timestamp(day), nm] = r2_os(y, yhat)
                 r2_day_xs.loc[pd.Timestamp(day), nm] = _r2_os_cs_one_day(y, yhat)
@@ -2732,30 +2894,109 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
         r2_day_xs.reset_index().rename(columns={"index": "date"}).to_csv(
             os.path.join(base_out_dir, "metrics_per_day_xs.csv"), index=False
         )
-
-
-        # Aggregate portfolio metrics (tertiles as before) for ALL models
+        
+        # 5. Export Portfolio (Best Models Only)
         pf_out = ensure_dir(os.path.join(base_out_dir, "portfolio"))
         export_portfolios_raw(
             y=pred_all["y_target"].to_numpy(),
-            preds_scores={nm: pred_all[f"yhat_{nm}"].to_numpy() for nm in preds_all_models.keys()},
+            preds_scores={nm: pred_all[f"yhat_{nm}"].to_numpy() for nm in preds_best_only.keys()},
             ids=pd.to_datetime(pred_all["group"]).to_numpy(),
             out_dir=pf_out,
             n_bins=int((cfg.get("portfolio", {}) or {}).get("n_bins", 3)),
             normalize_group_to_day=True,
             write_ic=True,
         )
-
-        # Final-step SHAP (N-En only) written into base_out_dir/SHAP_final
-        shap_conf = (cfg.get("explain", {}).get("shap", {}) or {})
-        if last_shap_payload is not None and bool(shap_conf.get("enabled", True)):
-            if "best_by_algo" in last_shap_payload and last_shap_payload["best_by_algo"]:
-                final_shap_dir = ensure_dir(os.path.join(base_out_dir, "SHAP"))
-                export_shap_n_en(
-                    out_dir=final_shap_dir,
-                    cfg=cfg,
-                    **last_shap_payload,
+        
+        # 6. Metrics & Portfolio for DTE Subsets (Best Models Only)
+        if "dte" in pred_all.columns:
+            for sub_name, mask in [("dte_1_7", pred_all["dte"] <= 7), ("dte_8_31", pred_all["dte"] > 7)]:
+                if not mask.any():
+                    continue
+                
+                sub_dir = ensure_dir(os.path.join(base_out_dir, sub_name))
+                y_sub = y_all[mask]
+                ids_sub = ids_all[mask]
+                preds_sub = {k: v[mask] for k, v in preds_best_only.items()}
+                
+                export_metrics(
+                    y_sub, preds_sub, ids_sub, sub_dir,
+                    y_true_winsor_aligned=None, filename="metrics.csv",
                 )
+                
+                pf_out_sub = ensure_dir(os.path.join(sub_dir, "portfolio"))
+                export_portfolios_raw(
+                    y=pred_all.loc[mask, "y_target"].to_numpy(),
+                    preds_scores={nm: pred_all.loc[mask, f"yhat_{nm}"].to_numpy() for nm in preds_best_only.keys()},
+                    ids=pd.to_datetime(pred_all.loc[mask, "group"]).to_numpy(),
+                    out_dir=pf_out_sub,
+                    n_bins=int((cfg.get("portfolio", {}) or {}).get("n_bins", 3)),
+                    normalize_group_to_day=True,
+                    write_ic=True,
+                )
+
+        # -------------------------------------------------------------------------
+        # Final-step SHAP: Best-in-Class + N-En (Split by DTE)
+        # -------------------------------------------------------------------------
+        shap_conf = (cfg.get("explain", {}).get("shap", {}) or {})
+        
+        if last_shap_payload is not None and bool(shap_conf.get("enabled", True)):
+            final_shap_dir = ensure_dir(os.path.join(base_out_dir, "SHAP"))
+            
+            # Prepare Data for Splitting from Last Step
+            df_last = last_shap_payload["df_te"]
+            mask_last = last_shap_payload["mask_te"]
+            valid_df = df_last.loc[mask_last].reset_index(drop=True)
+            
+            idx_all = np.arange(len(valid_df))
+            idx_short = np.where(valid_df["dte"] <= 7)[0]
+            idx_long = np.where(valid_df["dte"] > 7)[0]
+            
+            splits = [("all", idx_all), ("dte_1_7", idx_short), ("dte_8_31", idx_long)]
+            models_dict = last_shap_payload.get("all_models", {})
+
+            for label, indices in splits:
+                if len(indices) < 20: 
+                    LOG.info(f"[SHAP] Skipping subset {label} (n={len(indices)} too small)")
+                    continue
+                    
+                label_dir = ensure_dir(os.path.join(final_shap_dir, label))
+                LOG.info(f"[SHAP] Generating plots for subset: {label} (n={len(indices)})")
+                
+                # Explain Best Individual Models
+                for model_name in best_models_list:
+                    if model_name not in models_dict:
+                        continue
+
+                    # Route to correct X matrix
+                    if "ffn" in model_name.lower():
+                        X_use = last_shap_payload.get("X_te_ffn")
+                        feats_use = last_shap_payload.get("feat_names_ffn")
+                    elif any(x in model_name.lower() for x in ["rf", "lgbm", "xgb", "gbdt", "dart"]):
+                        X_use = last_shap_payload.get("X_te_non")
+                        feats_use = last_shap_payload.get("feat_names_non")
+                    else:
+                        X_use = last_shap_payload.get("X_te_lin")
+                        feats_use = last_shap_payload.get("feat_names_lin")
+
+                    if X_use is not None and feats_use is not None:
+                        X_subset = X_use[indices]
+                        try_export_shap(models_dict, X_subset, feats_use, label_dir, model_name, cfg)
+
+                # Export N-En SHAP
+                if "best_by_algo" in last_shap_payload and last_shap_payload["best_by_algo"]:
+                    n_en_payload = {
+                        "all_models": models_dict,
+                        "best_by_algo": last_shap_payload["best_by_algo"],
+                        "X_te_non": last_shap_payload["X_te_non"][indices],
+                        "X_te_ffn": last_shap_payload["X_te_ffn"][indices],
+                        "df_te": valid_df.iloc[indices].reset_index(drop=True),
+                        "mask_te": np.ones(len(indices), dtype=bool),
+                        "feat_names_non": last_shap_payload["feat_names_non"],
+                        "feat_names_ffn": last_shap_payload["feat_names_ffn"],
+                        "out_dir": label_dir,
+                        "cfg": cfg
+                    }
+                    export_shap_n_en(**n_en_payload)
 
         summary_root.update(
             {
