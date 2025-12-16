@@ -16,8 +16,9 @@ from scipy.optimize import brentq
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # ------------------------------ CONFIGURATION ------------------------------
-FOLDER = "zerovolume-nonzero-oi"  # align with your YAML paths
-SPREADMAX = 1.4
+# FOLDER = "zeronon-spread0.5-midfloor1.0-futuset"  # align with your YAML paths
+FOLDER = "spread0.8"
+SPREADMAX = 0.8
 
 CONFIG = {
     "paths": {
@@ -64,7 +65,7 @@ CONFIG = {
 
     # Microstructure trims
     "USE_FIXED_MID_FLOOR": True,
-    "MID_PRICE_FIXED_FLOOR": 0.20,
+    "MID_PRICE_FIXED_FLOOR": 0.5,
     "MID_FLOOR_CLIP": (0.01, 10.00),
     "MICRO_PCT_MID_FLOOR": 0.02,
     "MICRO_PCT_REL_SPREAD_CAP": 0.98,
@@ -421,43 +422,58 @@ def load_sofr() -> pd.DataFrame:
 # ------------------------------ FUTURES SERIES (FIXED) ------------------------------
 def build_futures_series_robust(opt: pd.DataFrame) -> pd.DataFrame:
     """
-    Build a futures level series (F_t) for the option trading dates. DO NOT calendar-reindex to all days.
-    We construct F_t for each trading date and map F_tp1 using next trading date (based on option dates).
+    Builds F_t using ONLY the internal 'futuresettlementprice' to ensure 
+    strict 15:00 CT time alignment.
+    
+    Fixes:
+    1. Discards external Yahoo data (Time Leak).
+    2. Uses median() to handle the 19 dirty groups where settlement varied.
     """
-    # from options vendor settlement
-    ft_opt = (
-        opt.groupby("date", as_index=False)["futuresettlementprice"]
-        .median()
-        .rename(columns={"futuresettlementprice": "F_t_opt"})
+    col = "futuresettlementprice"
+    if col not in opt.columns:
+        raise KeyError(f"Critical: '{col}' missing. Cannot align timestamps safely.")
+
+    # 1. Extract strictly internal F_t
+    # We group by date AND expiration first to handle the dirty data check conceptually,
+    # but for a continuous series we need one F_t per date. 
+    # Since BTC futures are usually contango/backwardation, we ideally want the 
+    # F_t corresponding to the specific option's expiry.
+    # However, to keep the pipeline structure (F_t as a scalar per date), 
+    # we typically grab the "main" contract or an aggregate.
+    
+    # BETTER APPROACH FOR YOUR PIPELINE:
+    # If your pipeline expects one 'F_t' column in the main 'df' per row:
+    # You already have 'futuresettlementprice' on every row! 
+    # You don't need to merge F_t back in. You just need F_tp1.
+    
+    # Let's assume you want the timestamp-aligned F_tp1 logic:
+    
+    # Collapse to one representative price per DATE for the "next day" lookup.
+    # We use the median across all expirations for stability, or better, 
+    # we treat F_t as contract-specific if possible. 
+    # Given your current structure uses a single 'F_t' column for the day, 
+    # taking the median of the settlement column across all contracts is a 
+    # robust proxy for the "spot" level at settlement time.
+    F_daily = (
+        opt.groupby("date")[col]
+        .median() # Robust to the 19 dirty groups
+        .reset_index()
+        .rename(columns={col: "F_t"})
     )
+    
+    F_daily = F_daily.sort_values("date").dropna(subset=["F_t"])
 
-    fy = load_standard_csv(CONFIG["paths"]["futures_yahoo"])
-    if not fy.empty:
-        fy.columns = [c.strip().lower() for c in fy.columns]
-        fy["date"] = pd.to_datetime(fy["date"]).dt.date
-        col = "close" if "close" in fy.columns else ("adj close" if "adj close" in fy.columns else None)
-        fy = fy[["date", col]].rename(columns={col: "F_t_y"}) if col else pd.DataFrame(columns=["date", "F_t_y"])
-        fy = fy.drop_duplicates("date", keep="last")
-    else:
-        fy = pd.DataFrame(columns=["date", "F_t_y"])
+    # 2. Build Next-Day Lookups (F_tp1) using the Trading Calendar
+    trade_dates = pd.Index(F_daily["date"].unique()).sort_values()
+    next_date_map = pd.Series(trade_dates[1:], index=trade_dates[:-1])
+    
+    F_daily["date_tp1"] = F_daily["date"].map(next_date_map)
+    
+    # Self-merge to get F_tp1 aligned to the same source
+    F_next = F_daily[["date", "F_t"]].rename(columns={"date": "date_tp1", "F_t": "F_tp1"})
+    F_out = F_daily.merge(F_next, on="date_tp1", how="left")
 
-    F = ft_opt.merge(fy, on="date", how="outer")
-    F["F_t"] = np.where(np.isfinite(F.get("F_t_y")), F["F_t_y"], F.get("F_t_opt"))
-    F = F[["date", "F_t"]].sort_values("date").dropna(subset=["F_t"]).drop_duplicates("date", keep="last")
-
-    if F.empty:
-        raise ValueError("No futures levels found.")
-
-    # Map tp1 using trading dates from the options universe (not calendar)
-    trade_dates = pd.Index(pd.to_datetime(opt["date"]).dropna().dt.date.unique()).sort_values()
-    cal = pd.DataFrame({"date": trade_dates})
-    cal = cal.merge(F, on="date", how="left").sort_values("date")
-    cal["F_t"] = cal["F_t"].ffill()
-
-    next_td = build_next_trading_day_map(cal["date"])
-    cal["date_tp1"] = cal["date"].map(next_td)
-    cal = cal.merge(cal[["date", "F_t"]].rename(columns={"date": "date_tp1", "F_t": "F_tp1"}), on="date_tp1", how="left")
-    return cal[["date", "F_t", "F_tp1"]]
+    return F_out[["date", "F_t", "F_tp1"]]
 
 def attach_futures_next_trading_day(opt_df, fut_df, date_col="date", f_col="F_t"):
     trade_dates = pd.Index(pd.unique(opt_df[date_col].dropna())).sort_values()
@@ -723,7 +739,7 @@ def build_panel() -> pd.DataFrame:
     df["is_call"] = (df["callput"].str.upper() == "C").astype(int)
 
     # FIX (1): correct moneyness sign
-    df["log_moneyness"] = np.log(df["F_t"] / df["strike"])
+    df["log_moneyness"] = np.log(df["strike"]/df["F_t"])
 
     iv0 = df.get("impliedvolatility", pd.Series(np.nan, index=df.index))
     df["iv_raw"] = iv0.where(np.isfinite(iv0) & (iv0 > 0))
@@ -1053,7 +1069,7 @@ def build_panel() -> pd.DataFrame:
 
 
     spreads = df['opt_rel_spread_raw'].dropna()
-    bins = np.arange(0, 2.1, 0.1)
+    bins = np.arange(0, 5.0, 0.1)
     print(pd.cut(spreads, bins=bins).value_counts().sort_index())
     print(f"Spread >= 2.0: {(spreads >= 2.0).sum()}")
 
@@ -1645,9 +1661,6 @@ def build_panel() -> pd.DataFrame:
         if col in df_out.columns:
             n = df_out[col].isna().sum()
             print(f"  {col:>24}: missing={n:5d} ({n/len(df_out)*100:.2f}%)")
-
-
-
 
     if "date" in df_out.columns:
         dates = pd.to_datetime(df_out["date"])
