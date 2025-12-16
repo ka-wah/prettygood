@@ -1,8 +1,8 @@
 {
   "out_dir": "results/dh_ret/all-all/IBMCTINTERACTIONS",
   "monthly_dir": "results/dh_ret/all-all/IBMCTINTERACTIONS/monthly",
-  "rows_loaded": 13142,
-  "rows_after_filters": 13142,
+  "rows_loaded": 21203,
+  "rows_after_filters": 21203,
   "expanding_eval": {
     "enabled": true,
     "freq": "M",

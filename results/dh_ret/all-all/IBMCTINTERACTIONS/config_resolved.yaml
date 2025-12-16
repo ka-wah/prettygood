@@ -128,8 +128,8 @@ data:
     winsorize:
       enabled: true
       fit_on: train
-      lower_q: 0.01
-      upper_q: 0.99
+      lower_q: 0.005
+      upper_q: 0.995
   target_norm:
     abs: true
     floor: 1e-6
@@ -145,7 +145,7 @@ explain:
     models:
     - best
     per_member: true
-    sample_rows: 500
+    sample_rows: 1000
 logging:
   level: INFO
   show_progress: true
@@ -163,7 +163,7 @@ models:
     - lgbm_dart
     - ffn
 paths:
-  data: inputs/short.parquet
+  data: spread0.8/dhinput.parquet
   out_dir: results/dh_ret/all-all/IBMCTINTERACTIONS
 portfolio:
   n_bins: 3
@@ -207,52 +207,51 @@ tuning:
     use_train_plus_val: true
   keep_top_k: 2
   n_iter: 128
+  sample_weights:
+    clip:
+    - 10
+    - 5000.0
+    column: mid_t
   seed: 0
   spaces:
     elasticnet:
       alpha:
         dist: loguniform
         high: 1.0
-        low: 1e-6
+        low: 0.001
       l1_ratio:
         dist: uniform
-        high: 1.0
-        low: 0.0
+        high: 0.9
+        low: 0.1
       max_iter:
         values:
         - 10000
     ffn:
       activation:
         values:
-        - relu
         - tanh
+        - relu
         - gelu
       batch_size:
         values:
-        - 512
-        - 1024
+        - 64
+        - 128
       device:
         values:
         - auto
       dropout:
         dist: uniform
-        high: 0.3
-        low: 0.0
+        high: 0.5
+        low: 0.2
       hidden_width:
         values:
         - 32
         - 64
-        - 128
       huber_delta:
         values:
-        - 0.5
         - 1.0
-        - 2.0
       learning_rate:
         values:
-        - 0.001
-        - 0.0005
-        - 0.0003
         - 0.0001
       loss:
         values:
@@ -264,13 +263,9 @@ tuning:
       n_hidden_layers:
         values:
         - 1
-        - 2
-        - 3
       patience:
         values:
-        - 5
         - 10
-        - 20
       seed:
         values:
         - 0
@@ -279,17 +274,13 @@ tuning:
         - 0.1
       weight_decay:
         dist: loguniform
-        high: 1e-3
-        low: 1e-6
-      width_shrink:
-        values:
-        - 1.0
-        - 0.5
+        high: 0.1
+        low: 0.001
     lasso:
       alpha:
         dist: loguniform
         high: 1.0
-        low: 1e-6
+        low: 0.001
       max_iter:
         values:
         - 10000
@@ -297,81 +288,72 @@ tuning:
       bagging_freq:
         values:
         - 1
-        - 10
       colsample_bytree:
         values:
+        - 0.6
         - 0.8
-        - 1.0
       drop_rate:
         values:
-        - 0.05
-        - 0.1
-        - 0.15
         - 0.2
+        - 0.3
+        - 0.5
       learning_rate:
         values:
-        - 0.003
-        - 0.005
-        - 0.01
         - 0.02
+        - 0.05
+        - 0.1
       max_bin:
         values:
         - 63
         - 127
-        - 255
       max_depth:
         values:
-        - -1
-        - 3
+        - 2
         - 4
+        - 6
       max_drop:
         values:
         - 10
-        - 50
+        - 20
       min_child_samples:
         values:
         - 50
         - 100
         - 200
-        - 400
       min_child_weight:
         values:
-        - 0.001
         - 0.01
         - 0.1
       min_split_gain:
         values:
-        - 0.0
         - 0.05
         - 0.1
       n_estimators:
         values:
-        - 800
-        - 1200
-        - 2000
-        - 3000
+        - 50
+        - 100
+        - 200
       num_leaves:
         values:
+        - 7
+        - 15
         - 31
-        - 63
-        - 127
       reg_alpha:
         dist: loguniform
-        high: 10.0
-        low: 1e-6
+        high: 100.0
+        low: 0.1
       reg_lambda:
         dist: loguniform
-        high: 10.0
-        low: 1e-6
+        high: 100.0
+        low: 0.1
       skip_drop:
         values:
-        - 0.1
-        - 0.25
+        - 0.3
         - 0.5
       subsample:
         values:
+        - 0.6
         - 0.8
-        - 1.0
       verbosity:
         values:
         - -1
@@ -386,6 +368,7 @@ tuning:
         - 1.0
       drop_rate:
         values:
+        - 0.05
         - 0.1
         - 0.15
         - 0.2
@@ -396,10 +379,9 @@ tuning:
         - 2.0
       learning_rate:
         values:
-        - 0.005
         - 0.01
         - 0.02
-        - 0.03
+        - 0.05
       max_bin:
         values:
         - 63
@@ -407,7 +389,7 @@ tuning:
         - 255
       max_depth:
         values:
-        - -1
+        - 2
         - 3
         - 4
       max_drop:
@@ -416,10 +398,9 @@ tuning:
         - 50
       min_child_samples:
         values:
+        - 50
         - 100
-        - 150
         - 200
-        - 300
       min_child_weight:
         values:
         - 0.001
@@ -432,27 +413,27 @@ tuning:
         - 0.1
       n_estimators:
         values:
+        - 200
+        - 400
         - 600
-        - 900
-        - 1200
       num_leaves:
         values:
+        - 7
         - 15
         - 31
-        - 63
-        - 127
       reg_alpha:
         dist: loguniform
-        high: 1.0
-        low: 1.0e-06
+        high: 10.0
+        low: 1e-6
       reg_lambda:
         dist: loguniform
-        high: 1.0
-        low: 1.0e-06
+        high: 10.0
+        low: 1e-6
       skip_drop:
         values:
         - 0.1
         - 0.25
+        - 0.5
       subsample:
         values:
         - 0.8
@@ -464,56 +445,51 @@ tuning:
       bagging_freq:
         values:
         - 1
-        - 10
       colsample_bytree:
         values:
+        - 0.6
         - 0.8
-        - 1.0
       learning_rate:
         values:
-        - 0.003
-        - 0.005
-        - 0.01
         - 0.02
+        - 0.05
+        - 0.1
       max_bin:
         values:
         - 63
         - 127
-        - 255
       max_depth:
         values:
-        - -1
-        - 3
+        - 2
         - 4
+        - 6
       min_child_samples:
         values:
         - 50
         - 100
         - 200
-        - 400
       n_estimators:
         values:
-        - 800
-        - 1200
-        - 2000
-        - 3000
+        - 50
+        - 100
+        - 200
       num_leaves:
         values:
+        - 7
+        - 15
         - 31
-        - 63
-        - 127
       reg_alpha:
         dist: loguniform
         high: 10.0
-        low: 1e-6
+        low: 0.1
       reg_lambda:
         dist: loguniform
         high: 10.0
-        low: 1e-6
+        low: 0.1
       subsample:
         values:
+        - 0.6
         - 0.8
-        - 1.0
       verbosity:
         values:
         - -1
@@ -533,10 +509,9 @@ tuning:
         - 2.0
       learning_rate:
         values:
-        - 0.005
         - 0.01
+        - 0.02
         - 0.05
-        - 0.1
       max_bin:
         values:
         - 63
@@ -544,43 +519,31 @@ tuning:
         - 255
       max_depth:
         values:
-        - -1
-        - 2
         - 3
+        - 4
+        - 5
       min_child_samples:
         values:
-        - 150
+        - 50
+        - 100
         - 200
-        - 300
-      min_child_weight:
-        values:
-        - 0.001
-        - 0.01
-        - 0.1
-      min_split_gain:
-        values:
-        - 0.0
-        - 0.05
-        - 0.1
       n_estimators:
         values:
+        - 200
+        - 400
         - 600
-        - 900
-        - 1200
       num_leaves:
         values:
-        - 10
         - 15
-        - 30
-        - 45
+        - 31
       reg_alpha:
         dist: loguniform
-        high: 1.0
-        low: 1.0e-06
+        high: 10.0
+        low: 1e-6
       reg_lambda:
         dist: loguniform
-        high: 1.0
-        low: 1.0e-06
+        high: 10.0
+        low: 1e-6
       subsample:
         values:
         - 0.8
@@ -620,40 +583,32 @@ tuning:
         - true
       max_depth:
         values:
-        - 4
-        - 6
+        - 3
+        - 5
         - 8
-        - 12
       max_features:
         values:
         - sqrt
         - log2
       max_samples:
         values:
-        - 0.5
-        - 0.7
-        - 0.9
+        - 0.6
+        - 0.8
       min_samples_leaf:
         values:
-        - 5
-        - 10
         - 20
         - 50
-      min_samples_split:
-        values:
-        - 2
-        - 5
-        - 10
+        - 100
       n_estimators:
         values:
-        - 600
-        - 1000
-        - 1500
+        - 100
+        - 200
+        - 300
     ridge:
       alpha:
         dist: loguniform
-        high: 10.0
-        low: 1e-6
+        high: 100.0
+        low: 0.1
       max_iter:
         values:
         - 10000

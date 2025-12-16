@@ -1,0 +1,15 @@
+2025-12-16 10:09:31,169 | INFO | === Expanding step: train_to_2023-03__test_2023-04 ===
+2025-12-16 10:09:31,178 | INFO | [guardrails] transform=none
+2025-12-16 10:09:31,178 | INFO | [guardrails] winsor z: lower_q=0.0050 (-1.67141), upper_q=0.9950 (16.0871)
+2025-12-16 10:09:31,968 | INFO | Training linear: ['ridge', 'lasso', 'elasticnet', 'pcr', 'pls']
+2025-12-16 10:09:35,615 | INFO | [keep] ridge#1 score=-0.02978 params={'max_iter': np.int64(10000), 'alpha': 92.28295957427436}
+2025-12-16 10:09:35,631 | INFO | [keep] ridge#2 score=-0.03339 params={'max_iter': np.int64(10000), 'alpha': 86.26905220714896}
+2025-12-16 10:09:44,610 | INFO | [keep] lasso#1 score=0.05548 params={'max_iter': np.int64(10000), 'alpha': 0.017538232373118037}
+2025-12-16 10:09:44,632 | INFO | [keep] lasso#2 score=0.05548 params={'max_iter': np.int64(10000), 'alpha': 0.017489966737814593}
+2025-12-16 10:09:57,817 | INFO | [keep] elasticnet#1 score=0.05535 params={'max_iter': np.int64(10000), 'alpha': 0.020304615777978822, 'l1_ratio': 0.8135386840125377}
+2025-12-16 10:09:57,957 | INFO | [keep] elasticnet#2 score=0.05533 params={'max_iter': np.int64(10000), 'alpha': 0.020547625125911337, 'l1_ratio': 0.8134184006256638}
+2025-12-16 10:09:59,073 | INFO | [keep] pcr#1 score=-0.00883 params={'pca__n_components': 2, 'ridge__alpha': 0.0001}
+2025-12-16 10:09:59,092 | INFO | [keep] pcr#2 score=-0.00883 params={'pca__n_components': 2, 'ridge__alpha': 0.001}
+2025-12-16 10:09:59,290 | INFO | [keep] pls#1 score=0.00176 params={'n_components': 3}
+2025-12-16 10:09:59,306 | INFO | [keep] pls#2 score=-0.01373 params={'n_components': 2}
+2025-12-16 10:09:59,308 | INFO | Training FFN: ['ffn']
