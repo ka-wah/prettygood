@@ -1,0 +1,459 @@
+experiment:
+  name: "optml-main"
+  seed: 0
+
+paths:
+  data: features_and_dh_returns.parquet
+
+data:
+  date_col: date
+  group_col: date
+  target: dh_ret
+  moneyness_col: moneyness_std
+  option_type_col: is_call
+  features: []
+  feature_groups:
+    I:
+      - moneyness_std
+      - tau
+      - is_call
+      - delta_model
+      - theta_model
+      - gamma_model
+      - vega_model
+      - iv
+      - log_mid_t
+      - opt_rel_spread_final
+      - opt_rel_spread_chg
+      - baspread_chg
+      - log_open_interest_opt
+      - d_log_open_interest_opt
+
+    B:
+      - atm_iv
+      - atm_term_slope
+      - smile_slope
+      - convexity_proxy
+      - rr25_proxy
+      - bf25_proxy
+      - ivrv_ratio_pred
+      - d_iv_atm
+      - atm_ivchg_proxy
+      - dist_to_wall
+      - ddist_to_wall
+      - gex_proxy
+      - dgex_proxy
+      - ddist_to_wall_date
+      - dgex_proxy_date
+      - oi_herf_date
+      - log_pcr_oi_opt
+      - d_log_pcr_oi_opt
+
+    M:
+      # - rv_pred                    # in master list, but commented in original
+      - rv_chg
+      - realskew_chg
+      - fut_baspread_chg
+      - fut_baspread_z
+      - log_taker_buy_sell_ratio
+      - log1p_taker_buy_volume
+      - log1p_long_liquidations_usd
+      - log1p_short_liquidations_usd
+      - d_log_taker_buy_sell_ratio
+      - d_log1p_taker_buy_volume
+      - d_log1p_long_liquidations_usd
+      - d_log1p_short_liquidations_usd
+      - basis
+      - d_basis
+      - funding_rates
+      - d_funding_rates
+      - log_estimated_leverage_ratio
+      - d_log_estimated_leverage_ratio
+      - log_open_interest
+      - d_log_open_interest
+      - log_pcr_oi
+      - d_log_pcr_oi
+      - futmom_5
+      - futmom_10
+      - futmom_21
+    C:
+      - log1p_spot_inflow_total  
+      - log1p_spot_outflow_total
+      - asinh_spot_netflow_total
+      - log1p_spot_reserve_usd
+      - log1p_spot_transactions_count_inflow
+      - log1p_spot_transactions_count_outflow
+      - addresses_count_active
+      - d_log1p_spot_inflow_total
+      - d_log1p_spot_outflow_total
+      - d_asinh_spot_netflow_total
+      - d_log1p_spot_reserve_usd
+      - d_log1p_spot_transactions_count_inflow
+      - d_log1p_spot_transactions_count_outflow
+      - log1p_der_inflow_total
+      - d_log1p_der_inflow_total
+      - log1p_der_outflow_total
+      - d_log1p_der_outflow_total
+      - log1p_der_transactions_count_inflow
+      - d_log1p_der_transactions_count_inflow
+      - log1p_der_transactions_count_outflow
+      - d_log1p_der_transactions_count_outflow
+      - asinh_der_netflow_total
+      - d_asinh_der_netflow_total
+    T:
+      - z_gt
+      - reddit_pos_z
+      - reddit_neg_z
+      - reddit_neu_z
+    INTERACTIONS:
+      - d_funding_rates_x_mny 
+      - d_funding_rates_x_tau
+      - d_log1p_spot_inflow_total_x_mny
+      - d_log1p_spot_inflow_total_x_tau
+      - d_log_open_interest_x_mny
+      - d_log_open_interest_x_tau
+      - d_log_pcr_oi_x_mny
+      - d_log_pcr_oi_x_tau
+
+
+  shift_features:
+    enabled: false
+    only_date_constant: true
+    force_all: false
+
+  exclusions_by_target:
+    y_gamma: []
+    y_vega: [price_per_vega]
+
+  target_norm:
+    kind: none
+    abs: true
+    floor: 1e-6
+    # column: null
+    # force: false
+
+  target_guardrails:
+    winsorize:
+      enabled: true      # false to disable
+      lower_q: 0.005
+      upper_q: 0.995
+      fit_on: train      # learn thresholds on train only
+    transform:
+      enabled: false     # true to enable
+      kind: asinh        # asinh | log1p | none
+      scale:
+        method: mad
+
+contracts:
+  type: all
+  moneyness: all
+  atm_band: [-1.0, 1.0]
+
+preprocess:
+  linear_nn:
+    min_non_null_frac: 0.60
+    variance_threshold: 1e-12
+    winsorize:
+      lower_q: 0.005
+      upper_q: 0.995
+    impute: median
+    yeo_johnson: true
+    standardize: true
+  trees:
+    min_non_null_frac: 0.20
+    variance_threshold: 1e-12
+    winsorize:
+      lower_q: 0.00
+      upper_q: 1.00
+    impute: median
+    yeo_johnson: false
+    standardize: false
+
+split:
+  scheme: time_ordered
+  train_frac: 0.70
+  val_frac: 0.15
+  test_frac: 0.15
+  purge_gap: 1
+  expanding_eval:
+    enabled: true
+    freq: "M"
+    min_train_months: 38
+
+benchmark: zero
+
+models:
+  enable:
+    linear:
+      # - ols
+      - ridge
+      - lasso
+      - elasticnet
+      - pcr
+      - pls
+    nonlinear:
+      - rf
+      - lgbm_gbdt
+      # - lgbm_gbdt_huber      # ← NEW Huber GBDT model
+      - lgbm_dart
+      # - lgbm_dart_huber      # ← NEW Huber DART model
+      - ffn
+
+tuning:
+  strategy: random
+  n_iter: 128
+  keep_top_k: 2
+  seed: 0
+  build_family_ensemble: true
+  sample_weights:
+    column: "mid_t"       # Column to weight by
+    clip: [10, 5000.0]   # Optional: Clip weights to avoid exploding gradients
+  cv:
+    enabled: true
+    kind: time_grouped
+    n_splits: 3
+    gap: 1
+    use_train_plus_val: true
+    min_train_size: 60
+  spaces:
+    ols: {}
+    ridge:
+      alpha:
+        dist: loguniform
+        low: 0.1        # Relaxed: Was 1. Allows fitting if signal is strong.
+        high: 100.0
+      max_iter:
+        values: [10000]
+    lasso:
+      alpha:
+        dist: loguniform
+        low: 0.001      # Relaxed: Was 0.05. Standard Lasso range.
+        high: 1.0
+      max_iter:
+        values: [10000]
+    elasticnet:
+      alpha:
+        dist: loguniform
+        low: 0.001      # Relaxed: aligned with Lasso
+        high: 1.0
+      l1_ratio:
+        dist: uniform
+        low: 0.1
+        high: 0.9
+      max_iter:
+        values: [10000]
+    pcr:
+      pca__n_components:
+        values: [1, 2, 3, 4, 5, 6]
+      ridge__alpha:
+        values: [0.0001, 0.001, 0.01, 0.1, 1.0]
+    pls:
+      n_components:
+        values: [1, 2, 3, 4, 5, 6]
+    rf:
+      n_estimators:
+        values: [100, 200, 300]
+      max_depth:
+        values: [3, 5, 8]       # Increased: Was 2-3. Allows capturing non-linearities.
+      max_features:
+        values: ["sqrt", "log2"]
+      min_samples_leaf:
+        values: [20, 50, 100]   # Decreased: Was 50-100. Allows finer patterns.
+      bootstrap:
+        values: [true]
+      max_samples:
+        values: [0.6, 0.8]      # Increased slightly for better data usage.
+    lgbm_gbdt:
+      n_estimators:
+        values: [50, 100, 200]
+      learning_rate:
+        values: [0.02, 0.05, 0.1]
+      max_depth:
+        values: [2, 4, 6]       # Increased: Was 1-3.
+      num_leaves:
+        values: [7, 15, 31]     # Increased: Was 3-15.
+      min_child_samples:
+        values: [50, 100, 200]  # Decreased heavily: Was 200-800. Critical for 25k obs.
+      subsample:
+        values: [0.6, 0.8]
+      colsample_bytree:
+        values: [0.6, 0.8]      # Increased slightly.
+      reg_alpha:
+        dist: loguniform
+        low: 0.1
+        high: 10.0              # Lowered cap slightly (was 100).
+      reg_lambda:
+        dist: loguniform
+        low: 0.1
+        high: 10.0
+      max_bin:
+        values: [63, 127]       # Increased resolution (was 31, 63).
+      bagging_freq:
+        values: [1]
+      verbosity:
+        values: [-1]
+    lgbm_gbdt_huber:
+      # Adjusted to match lgbm_gbdt changes
+      n_estimators:
+        values: [200, 400, 600]
+      learning_rate:
+        values: [0.01, 0.02, 0.05]
+      max_depth:
+        values: [3, 4, 5]
+      num_leaves:
+        values: [15, 31]
+      min_child_samples:
+        values: [50, 100, 200]
+      subsample:
+        values: [0.8, 1.0]
+      colsample_bytree:
+        values: [0.8, 1.0]
+      reg_alpha:
+        dist: loguniform
+        low: 1e-6
+        high: 10.0
+      reg_lambda:
+        dist: loguniform
+        low: 1e-6
+        high: 10.0
+      max_bin:
+        values: [63, 127, 255]
+      bagging_freq:
+        values: [1, 10]
+      verbosity:
+        values: [-1]
+      huber_delta:
+        values: [0.5, 1.0, 2.0]
+    lgbm_dart:
+      n_estimators:
+        values: [50, 100, 200]
+      learning_rate:
+        values: [0.02, 0.05, 0.1]
+      max_depth:
+        values: [2, 4, 6]       # Aligned with gbdt
+      num_leaves:
+        values: [7, 15, 31]     # Aligned with gbdt
+      min_child_samples:
+        values: [50, 100, 200]  # Aligned with gbdt
+      min_split_gain:
+        values: [0.05, 0.1]
+      min_child_weight:
+        values: [0.01, 0.1]
+      subsample:
+        values: [0.6, 0.8]
+      colsample_bytree:
+        values: [0.6, 0.8]
+      reg_alpha:
+        dist: loguniform
+        low: 0.1
+        high: 100.0
+      reg_lambda:
+        dist: loguniform
+        low: 0.1
+        high: 100.0
+      drop_rate:
+        values: [0.2, 0.3, 0.5]
+      skip_drop:
+        values: [0.3, 0.5]
+      max_drop:
+        values: [10, 20]
+      max_bin:
+        values: [63, 127]
+      bagging_freq:
+        values: [1]
+      verbosity:
+        values: [-1]
+
+    lgbm_dart_huber:
+      # Kept mostly same, just aligned child_samples
+      n_estimators:
+        values: [200, 400, 600]
+      learning_rate:
+        values: [0.01, 0.02, 0.05]
+      max_depth:
+        values: [2, 3, 4]
+      num_leaves:
+        values: [7, 15, 31]
+      min_child_samples:
+        values: [50, 100, 200]
+      min_split_gain:
+        values: [0.0, 0.05, 0.1]
+      min_child_weight:
+        values: [0.001, 0.01, 0.1]
+      subsample:
+        values: [0.8, 1.0]
+      colsample_bytree:
+        values: [0.8, 1.0]
+      reg_alpha:
+        dist: loguniform
+        low: 1e-6
+        high: 10.0
+      reg_lambda:
+        dist: loguniform
+        low: 1e-6
+        high: 10.0
+      drop_rate:
+        values: [0.05, 0.10, 0.15, 0.20]
+      skip_drop:
+        values: [0.10, 0.25, 0.50]
+      max_drop:
+        values: [10, 50]
+      max_bin:
+        values: [63, 127, 255]
+      bagging_freq:
+        values: [1, 10]
+      verbosity:
+        values: [-1]
+      huber_delta:
+        values: [0.5, 1.0, 2.0]
+    ffn:
+      n_hidden_layers:
+        values: [1]
+      hidden_width:
+        values: [32, 64]        # Increased: Was 16,32. 
+      activation:
+        values: ["tanh", "relu", "gelu"]
+      dropout:
+        dist: uniform
+        low: 0.2                # Reduced: Was 0.3
+        high: 0.5               # Reduced: Was 0.6
+      learning_rate:
+        values: [0.0001]
+      weight_decay:
+        dist: loguniform
+        low: 0.001
+        high: 0.1
+      max_epochs:
+        values: [50, 100]
+      batch_size:
+        values: [64, 128]       # Reduced: Smaller batches = better gradients for small data
+      patience:
+        values: [10]
+      val_split:
+        values: [0.1]
+      seed:
+        values: [0]
+      device:
+        values: ["auto"]
+      loss:
+        values: ["mse"]
+      huber_delta:
+        values: [1.0]
+
+
+
+explain:
+  shap:
+    enabled: True
+    models: ["best"]
+    sample_rows: 1000
+    background_kmeans: 20
+    check_additivity: false
+    per_member: true
+
+portfolio:
+  n_bins: 3
+
+logging:
+  level: INFO
+  show_progress: true

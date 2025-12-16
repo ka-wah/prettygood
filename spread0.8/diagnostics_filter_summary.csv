@@ -1,0 +1,10 @@
+stage,count,share_of_postDTE_%
+raw_options_loaded,2632319,4068.18
+after_dte_filter_1_31,64705,100.0
+post_merge_panel_rows,23299,36.01
+has_mid_t,23299,36.01
+has_iv,23297,36.0
+has_greeks,23297,36.0
+has_F_tp1,23292,36.0
+has_V_tp1,23248,35.93
+has_y_price,23244,35.92
