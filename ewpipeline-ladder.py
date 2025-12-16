@@ -60,44 +60,42 @@ MNY_BUCKETS = ["all", "otm", "itm", "atm"]
 GROUPS = ["I", "B", "M", "C", "T", "INTERACTIONS"]
 CONFIG_PATH = "./ew-big.yaml"
 
-import argparse
+# import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--side", choices=SIDES, default="all")
+# parser = argparse.ArgumentParser()
+# parser.add_argument("--side", choices=SIDES, default="all")
 
 SHORT = 'spread0.8/dhinput.parquet'
 
-# NEW: groups selector
-parser.add_argument(
-    "--groups",
-    nargs="+",
-    choices=["all"] + GROUPS,
-    default=["all"],
-    help="Feature groups to use. Use 'all' to include every group.",
-)
+# # NEW: groups selector
+# parser.add_argument(
+#     "--groups",
+#     nargs="+",
+#     choices=["all"] + GROUPS,
+#     default=["all"],
+#     help="Feature groups to use. Use 'all' to include every group.",
+# )
 
-args = parser.parse_args()
+# args = parser.parse_args()
 
-if args.groups == ["all"]:
-    selected_groups = GROUPS.copy()
-else:
-    if "all" in args.groups:
-        parser.error("Cannot combine 'all' with specific groups.")
-    # keep order, drop duplicates
-    selected_groups = list(dict.fromkeys(args.groups))
+# if args.groups == ["all"]:
+#     selected_groups = GROUPS.copy()
+# else:
+#     if "all" in args.groups:
+#         parser.error("Cannot combine 'all' with specific groups.")
+#     # keep order, drop duplicates
+#     selected_groups = list(dict.fromkeys(args.groups))
 
 RUNS = [
-    RunSpec(
-        label=f"side={args.side}|groups={'+'.join(selected_groups)}",
+        RunSpec(
+        label=f"side=all|groups=allbutI",
         base_config_path=CONFIG_PATH,
         data_path=SHORT,
-        groups=selected_groups,
-        contracts_type=args.side,
+        groups=["B", "M", "C", "T", "INTERACTIONS"],
+        contracts_type="all",
         contracts_mny="all",
     )
 ]
-
-
 
 
 # =============================================================================
