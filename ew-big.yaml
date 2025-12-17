@@ -22,16 +22,16 @@ data:
       - gamma_model
       - vega_model
       - iv
-      - log_mid_t
-      - opt_rel_spread_final
-      - opt_rel_spread_chg
+      # - log_mid_t
+      # - opt_rel_spread_final
+      # - opt_rel_spread_chg
       - baspread_chg
       - log_open_interest_opt
       - d_log_open_interest_opt
 
     B:
       - atm_iv
-      - atm_term_slope
+      # - atm_term_slope  #too few?
       - smile_slope
       - convexity_proxy
       - rr25_proxy
@@ -94,10 +94,10 @@ data:
       - d_log1p_der_inflow_total
       - log1p_der_outflow_total
       - d_log1p_der_outflow_total
-      - log1p_der_transactions_count_inflow
-      - d_log1p_der_transactions_count_inflow
-      - log1p_der_transactions_count_outflow
-      - d_log1p_der_transactions_count_outflow
+      # - log1p_der_transactions_count_inflow
+      # - d_log1p_der_transactions_count_inflow
+      # - log1p_der_transactions_count_outflow
+      # - d_log1p_der_transactions_count_outflow
       - asinh_der_netflow_total
       - d_asinh_der_netflow_total
     T:

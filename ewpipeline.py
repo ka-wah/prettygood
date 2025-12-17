@@ -58,26 +58,27 @@ class RunSpec:
 SIDES = ["all", "call", "put"]
 MNY_BUCKETS = ["all", "otm", "itm", "atm"]
 GROUPS = ["I", "B", "M", "C", "T", "INTERACTIONS"]
-CONFIG_PATH = "./ew.yaml"
+CONFIG_PATH = "./ew-big.yaml"
 
 SHORT = '0.8-spread/dhinput.parquet'
 ULTRA = 'inputs/ultra.parquet'
 
 
-# near top in __main__
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument("--side", choices=["all", "call", "put"], default="all")
-args = parser.parse_args()
+# # near top in __main__
+# import argparse
+# parser = argparse.ArgumentParser()
+# parser.add_argument("--side", choices=["all", "call", "put"], default="all")
+# args = parser.parse_args()
 
 RUNS = [
     RunSpec(
-        label=f"side={args.side}",
+        label=f"withoutmidandspread",
         base_config_path=CONFIG_PATH,
         data_path=SHORT,
         groups=["I", "B", "M", "C", "T", "INTERACTIONS"],
-        contracts_type=args.side,
+        contracts_type="all",
         contracts_mny="all",
+        out_dir="results/withoutmidandspread",
     ),
     #     RunSpec(
     #     label=f"side={args.side}",
