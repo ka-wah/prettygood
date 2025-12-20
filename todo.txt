@@ -3,3 +3,42 @@ BTC derivatives is partly attributed to the fact that pricing BTC derivatives (e
 encounters econometric challenges from the extraordinary occurrence of jumps as this market is unregulated, lacks of central settlement and is highly speculation driven.
 https://watermark02.silverchair.com/nbaa006.pdf?token=AQECAHi208BE49Ooan9kkhW_Ercy7Dm3ZL_9Cf3qfKAc485ysgAAA1IwggNOBgkqhkiG9w0BBwagggM_MIIDOwIBADCCAzQGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMSMcE5LEPKpxC51B8AgEQgIIDBf247GG2pr13gy0KXt6k2846gE48AmNYvU3tt12x3Y55ltpN7V-CVdKJronSlnMxEnWqwRno6YTmuQWnB3OPW2AKZQasWyYL4Zr_uNMmKcoSp8A3GHtiZ2FljsXFxkrMSodm1i0ca0ME5E83e450IYCYU6wLr1c9JyqsxW0EKgICbRDAlZ24IZxycgNe8Hweb-XX8pDKZ3qof8unWJ8HSJxWnu9OVk0jWPUt6ixDUR3A4S-2rrjpOjJD8m72Lk56FNyw_xw6VstmZ1sldtvgUalX2HGhQGfPTwzKKcT05SaZrN5VG8XMWGPtuHJlc2Didk8lLc8S8kkighA9XCvTaqcjjyGBSB_0iPYIgHw40Sjs48Nh3suG5ChiXXkaeqsFgkeshjAakU2G3ODXn72WyQ-aNGN37wwe80QqewNxTcR0im-rMda2KQhn7fTNB_7_fCXZJ_NteEoetKYW6K2SE4uX5IaKNypQpFtnRJC_3eUIZN5PB8G1iHBP5hRUA57xlCgbeaZo4aPXdWpm9N6corJPNPywMudi1Y7i4F1RD_mhIjQjBNMKE2uUfDNy98xdmDU1r2FjYtWwDmbc4KQ41YRXfxaXobEIQURjVONC8Zs1iM-oHBGwEOWXzBBiQAHHW5k1WmPtsAYaUP-yYjpIRpN0sryZFPT9eSxJcviFCfXcaQ99m5duIAg_2UUqUgHeo7qZz1RQEPHKHkHVHAsl0CmFQam7Y9WJz0-u-39SOdk0lD1eLw3f-eGmH4N5F2J6VpGD5nY909mkZl8Z3vmJFs4A0zC6wNGt9SHfo6bj5Sb-q_-pk-TWvsQnJOMD7iYDSYyqb8Uae1RZXwrqVtspIxDcaDYUTsvkxArS0ApzMjTMu1FJabBZ7ih0C-E31NNZ75n-93g0XJkRnfskix_fnvoxsZ8LaEzIYO4LYpNtA2orL46TE2gks6mZDHbju7LUP8U64eyBaVrnrFsC67lWeRlTODnsi5Ue71kbLH7TwyDVwen9CvMjOhwhXpl8HTHNSlYLeKIQ
 pricing cryptocurrency  options
+
+
+
+- make cool webiste on thesis
+
+
+///
+DATA
+- diagnostics
+- figures
+
+METHODOLOGY
+- check all methods
+
+RESULTS
+- impact of information
+- gamma hedged returns
+
+citations
+todos
+phrasing of feature names
+introduce how to read figures?
+
+fix appendix
+- robust moneyness buckets..?
+---
+
+qs: show mid_t distritbution in data?
+qs: worth to clean up the shap plots? (remove _final and change x-axis to Change in E[r])
+
+
+--
+
+variance risk premium (VRP)
+w,XS
+'--'' 
+`'
+bid--ask spread
+mid-price
