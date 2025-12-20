@@ -65,7 +65,7 @@ def star_code(p):
 # ------------------------------------------------------------
 # 2. Load data and set up models
 # ------------------------------------------------------------
-df = pd.read_csv(r'C:\Users\kawah\Documents\bitcoining\big_results\all-all\IBMCINTERACTIONS\diag_all.csv', parse_dates=["group"])
+df = pd.read_csv(r'results\dh_ret\all-all\IBMCTINTERACTIONS\predictions_expanding.csv', parse_dates=["group"])
 
 # choose target: "y_target" (your y_vega) or "y_raw" (per-dollar return)
 y_col = "y_target"
@@ -79,13 +79,13 @@ model_cols = {
     "L-En":  ["yhat_L-En"],
     "GBR":   ["yhat_lgbm_gbdt#1", "yhat_lgbm_gbdt#2"],
     "RF":    ["yhat_rf#1", "yhat_rf#2"],
-    "Dart":  ["yhat_lgbm_dart#1", "yhat_lgbm_dart#2"],
+    "DART":  ["yhat_lgbm_dart#1", "yhat_lgbm_dart#2"],
     "FFN":   ["yhat_ffn#1", "yhat_ffn#2"],
     "N-En":  ["yhat_N-En"],
 }
 
 models = ["Ridge", "Lasso", "ENet", "PCR", "PLS",
-          "L-En", "GBR", "RF", "Dart", "FFN", "N-En"]
+          "L-En", "GBR", "DART","RF", "FFN", "N-En"]
 
 # average across #1/#2 variants per model
 for m, cols in model_cols.items():
@@ -108,9 +108,6 @@ errors_full = {m: (df[y_col] - df[m]).to_numpy() for m in models}
 for i in models:      # row model
     for j in models:  # column model
         if i == j:
-            dm_df.loc[i, j] = np.nan
-            p_df.loc[i, j] = np.nan
-            dm_with_stars.loc[i, j] = ""
             continue
 
         # build time series d_t^{(i,j)} = avg[(e_i^2 - e_j^2)] over days
@@ -142,10 +139,27 @@ for i in models:      # row model
 err_df = pd.DataFrame(errors_full)
 err_corr = err_df.corr()
 
+# forecast correlation (not errors), using averaged model predictions
+forecast_df = df[models]
+forecast_corr = forecast_df.corr()
+
+# ------------------------------------------------------------
+# 3b. Keep only the upper triangle for all outputs
+# ------------------------------------------------------------
+lower_mask = np.tril(np.ones((len(models), len(models)), dtype=bool), k=-1)
+diag_mask = np.eye(len(models), dtype=bool)
+mask = lower_mask | diag_mask
+dm_df = dm_df.mask(mask)
+p_df = p_df.mask(mask)
+dm_with_stars = dm_with_stars.mask(mask, "")
+err_corr = err_corr.mask(mask)
+forecast_corr = forecast_corr.mask(mask)
+
 # ------------------------------------------------------------
 # 4. Save matrices for Excel
 # ------------------------------------------------------------
-dm_df.to_csv("big-figs/trdm_crosssec_neweywest_tstats.csv", float_format="%.4f")
-p_df.to_csv("big-figs/trdm_crosssec_neweywest_pvalues.csv", float_format="%.4g")
-dm_with_stars.to_csv("big-figs/trdm_crosssec_neweywest_tstats_with_stars.csv")
-err_corr.to_csv("big-figs/trforecast_error_correlations.csv", float_format="%.4f")
+dm_df.to_csv("C:\\Users\\kawah\\prettygood\\cleanrepo\\results\\dh_ret\\figures\\triangle\\trdm_crosssec_neweywest_tstats.csv", float_format="%.2f")
+p_df.to_csv("C:\\Users\\kawah\\prettygood\\cleanrepo\\results\\dh_ret\\figures\\triangle\\trdm_crosssec_neweywest_pvalues.csv", float_format="%.2g")
+dm_with_stars.to_csv("C:\\Users\\kawah\\prettygood\\cleanrepo\\results\\dh_ret\\figures\\triangle\\trdm_crosssec_neweywest_tstats_with_stars.csv")
+err_corr.to_csv("C:\\Users\\kawah\\prettygood\\cleanrepo\\results\\dh_ret\\figures\\triangle\\trforecast_error_correlations.csv", float_format="%.2f")
+forecast_corr.to_csv("C:\\Users\\kawah\\prettygood\\cleanrepo\\results\\dh_ret\\figures\\triangle\\trforecast_correlations.csv", float_format="%.2f")

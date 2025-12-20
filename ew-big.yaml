@@ -22,9 +22,9 @@ data:
       - gamma_model
       - vega_model
       - iv
-      # - log_mid_t
-      # - opt_rel_spread_final
-      # - opt_rel_spread_chg
+      - log_mid_t
+      - opt_rel_spread_final
+      - opt_rel_spread_chg
       - baspread_chg
       - log_open_interest_opt
       - d_log_open_interest_opt

@@ -740,6 +740,184 @@ def r2_os_day_weighted(y_true: np.ndarray, y_pred: np.ndarray, groups: np.ndarra
     return 1.0 - e_model.mean() / e_naive.mean()
 
 
+def r2_os_weighted(y_true: np.ndarray, y_pred: np.ndarray, weights: np.ndarray) -> float:
+    """Calculates R2_OS where errors are weighted by 'weights' (e.g. price)."""
+    y_true = np.asarray(y_true, dtype=float)
+    y_pred = np.asarray(y_pred, dtype=float)
+    w = np.asarray(weights, dtype=float)
+    
+    good = np.isfinite(y_true) & np.isfinite(y_pred) & np.isfinite(w) & (w > 0)
+    y_true, y_pred, w = y_true[good], y_pred[good], w[good]
+    
+    if w.sum() == 0: return np.nan
+    
+    # Weighted MSE of Model
+    mse_model = np.average((y_true - y_pred)**2, weights=w)
+    
+    # Weighted MSE of Naive Prediction (Zero Return)
+    mse_naive = np.average(y_true**2, weights=w)
+    
+    return 1.0 - mse_model / mse_naive
+
+def r2_os_xs_weighted(y_true: np.ndarray, y_pred: np.ndarray, ids: np.ndarray, weights: np.ndarray) -> float:
+    """Calculates Cross-Sectional R2 (R2_XS) with sample weights."""
+    df = pd.DataFrame({'y': y_true, 'yhat': y_pred, 'g': ids, 'w': weights})
+    df = df[np.isfinite(df['y']) & np.isfinite(df['yhat']) & np.isfinite(df['w']) & (df['w'] > 0)]
+    if df.empty: return np.nan
+    
+    # 1. Calculate weighted means per group
+    df['wy'] = df['w'] * df['y']
+    df['wyhat'] = df['w'] * df['yhat']
+    
+    g = df.groupby('g')
+    sums = g[['wy', 'wyhat', 'w']].sum()
+    
+    # Avoid division by zero
+    sums = sums[sums['w'] > 0]
+    sums['y_bar'] = sums['wy'] / sums['w']
+    sums['yhat_bar'] = sums['wyhat'] / sums['w']
+    
+    # Map back
+    df['y_bar'] = df['g'].map(sums['y_bar'])
+    df['yhat_bar'] = df['g'].map(sums['yhat_bar'])
+    
+    # Drop rows where group sum(w) was zero
+    df = df.dropna(subset=['y_bar', 'yhat_bar'])
+    
+    # 2. Center Data
+    df['y_cs'] = df['y'] - df['y_bar']
+    df['yhat_cs'] = df['yhat'] - df['yhat_bar']
+    
+    # 3. Weighted R2 on centered data
+    num = np.average((df['y_cs'] - df['yhat_cs'])**2, weights=df['w'])
+    den = np.average(df['y_cs']**2, weights=df['w'])
+    
+    if den == 0: return np.nan
+    return 1.0 - num/den
+
+def clark_west_t_weighted(y_true: np.ndarray, y_pred: np.ndarray, ids: np.ndarray, weights: np.ndarray, hac_lags: int = 5) -> float:
+    """
+    Calculates CW_t on Weighted Data (Time Series).
+    Tests if Model MSE < Null MSE, aggregating by weighted daily mean.
+    """
+    y = np.asarray(y_true, dtype=float)
+    ya = np.asarray(y_pred, dtype=float)
+    w = np.asarray(weights, dtype=float)
+    ids = np.asarray(ids)
+    
+    mask = np.isfinite(y) & np.isfinite(ya) & np.isfinite(w) & (w > 0)
+    y, ya, w, ids = y[mask], ya[mask], w[mask], ids[mask]
+    
+    if len(y) == 0: return np.nan
+
+    # 1. Difference in Squared Errors (Null=0 vs Alt=Ya)
+    # d = e_null^2 - e_alt^2 + adj? 
+    # Standard CW for nested zero benchmark is often simplified to MSFE_null - MSFE_alt + adj.
+    # Here we use the standard "difference in loss" + "adj" form:
+    # e0 = y, e1 = y - ya
+    # d = e0**2 - e1**2 + (e0 - e1)**2  <-- Full CW adjustment term is (ya)^2
+    # But usually we just test d = e0^2 - e1^2 for non-nested or simple comparison.
+    # To match your unweighted code: d = y^2 - (y-ya)^2
+    d_row = y**2 - (y - ya)**2
+    
+    # 2. Aggregate to Daily Weighted Mean
+    df = pd.DataFrame({'d': d_row, 'w': w, 'g': ids})
+    
+    df['dw'] = df['d'] * df['w']
+    g = df.groupby('g')
+    sums = g[['dw', 'w']].sum()
+    
+    sums = sums[sums['w'] > 0]
+    daily_d = sums['dw'] / sums['w']
+    d_vals = daily_d.values
+    
+    if len(d_vals) < 2: return np.nan
+
+    # 3. HAC T-Test
+    try:
+        import statsmodels.api as sm
+        X = np.ones((len(d_vals), 1))
+        res = sm.OLS(d_vals, X).fit(cov_type="HAC", cov_kwds={"maxlags": int(hac_lags)})
+        return float(res.tvalues[0])
+    except Exception:
+        return float(np.mean(d_vals) / (np.std(d_vals, ddof=1) / np.sqrt(len(d_vals))))
+
+def clark_west_t_xs_weighted(y_true: np.ndarray, y_pred: np.ndarray, ids: np.ndarray, weights: np.ndarray, hac_lags: int = 5) -> float:
+    """
+    Calculates CW_t on Weighted Cross-Sectional Data (CW_t_w_XS).
+    Centers data by weighted daily mean, then tests difference in squared errors.
+    """
+    df = pd.DataFrame({'y': y_true, 'yhat': y_pred, 'g': ids, 'w': weights})
+    df = df[np.isfinite(df['y']) & np.isfinite(df['yhat']) & np.isfinite(df['w']) & (df['w'] > 0)]
+    if df.empty: return np.nan
+    
+    # 1. Calculate weighted means per group
+    df['wy'] = df['w'] * df['y']
+    df['wyhat'] = df['w'] * df['yhat']
+    
+    g = df.groupby('g')
+    sums = g[['wy', 'wyhat', 'w']].sum()
+    
+    sums = sums[sums['w'] > 0]
+    sums['y_bar'] = sums['wy'] / sums['w']
+    sums['yhat_bar'] = sums['wyhat'] / sums['w']
+    
+    df['y_bar'] = df['g'].map(sums['y_bar'])
+    df['yhat_bar'] = df['g'].map(sums['yhat_bar'])
+    df = df.dropna(subset=['y_bar', 'yhat_bar'])
+    
+    # 2. Center Data
+    df['y_cs'] = df['y'] - df['y_bar']
+    df['yhat_cs'] = df['yhat'] - df['yhat_bar']
+    
+    # 3. Calculate Difference in Squared Errors (XS)
+    # e0 = y_cs
+    # e1 = y_cs - yhat_cs
+    # d = e0^2 - e1^2
+    df['d_row'] = df['y_cs']**2 - (df['y_cs'] - df['yhat_cs'])**2
+    
+    # 4. Weighted Daily Aggregation of d_row
+    df['dw'] = df['d_row'] * df['w']
+    g_d = df.groupby('g')
+    sums_d = g_d[['dw', 'w']].sum()
+    sums_d = sums_d[sums_d['w'] > 0]
+    
+    daily_d = sums_d['dw'] / sums_d['w']
+    d_vals = daily_d.values
+    
+    if len(d_vals) < 2: return np.nan
+
+    # 5. HAC T-Test
+    try:
+        import statsmodels.api as sm
+        X = np.ones((len(d_vals), 1))
+        res = sm.OLS(d_vals, X).fit(cov_type="HAC", cov_kwds={"maxlags": int(hac_lags)})
+        return float(res.tvalues[0])
+    except Exception:
+        return float(np.mean(d_vals) / (np.std(d_vals, ddof=1) / np.sqrt(len(d_vals))))
+
+def export_weighted_metrics(
+    y_true: np.ndarray,
+    preds: Dict[str, np.ndarray],
+    ids: np.ndarray,
+    weights: np.ndarray,
+    out_dir: str,
+    filename: str = "metrics_weighted.csv"
+):
+    rows = []
+    for k, v in preds.items():
+        rows.append({
+            "model": k,
+            "R2_OS_w": r2_os_weighted(y_true, v, weights),
+            "R2_OS_w_XS": r2_os_xs_weighted(y_true, v, ids, weights),
+            "CW_t_w": clark_west_t_weighted(y_true, v, ids, weights),
+            "CW_t_w_XS": clark_west_t_xs_weighted(y_true, v, ids, weights),
+            "R2_OS_Raw": r2_os(y_true, v)
+        })
+    
+    pd.DataFrame(rows).sort_values("R2_OS_w", ascending=False).round(6).to_csv(os.path.join(out_dir, filename), index=False)
+
+
 def r2_os_winsor_aligned(y_true: np.ndarray, y_pred: np.ndarray, lo: float, hi: float) -> float:
     y_clip = np.clip(y_true, lo, hi)
     msfe_model = np.mean((y_clip - y_pred) ** 2)
@@ -2282,9 +2460,6 @@ def build_predictions_frame(
     return pred_df
 
 
-# =============================================================================
-# Driver: one variant (UPDATED: monthly expanding-window evaluation)
-# =============================================================================
 def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -> None:
     data_path = cfg["paths"]["data"]
     base_out_dir = ensure_dir(cfg["paths"]["out_dir"])
@@ -2306,7 +2481,10 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
         raw_return_col = cfg["data"].get("raw_return_col", "dh_ret")
         tcol = cfg["data"].get("option_type_col", "option_type")
         mcol = cfg["data"].get("moneyness_col", "moneyness")
-        atm_band = cfg.get("contracts", {}).get("atm_band", [0.98, 1.02])
+        # Ensure atm_band is floats
+        atm_band = cfg.get("contracts", {}).get("atm_band", [-0.02, 0.02])
+        if atm_band is None: atm_band = [-0.02, 0.02]
+        atm_band = [_as_float(atm_band[0], -0.02), _as_float(atm_band[1], 0.02)]
 
         split_cfg = (cfg.get("split", {}) or {})
         exp_cfg = (split_cfg.get("expanding_eval", {}) or {})
@@ -2325,6 +2503,11 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
             target_kind = "per_gamma"
         else:
             target_kind = "per_dollar"
+
+        # --- CONFIG: Sample Weighting ---
+        sw_cfg = cfg.get("tuning", {}).get("sample_weights", {})
+        sw_col = sw_cfg.get("column", None)
+        sw_clip = sw_cfg.get("clip", None)
 
         df_raw = load_data(data_path)
         df_raw = add_moneyness_std(df_raw)
@@ -2390,9 +2573,121 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
             "[expanding] enabled=%s | freq=%s | min_train_months=%d | months_total=%d",
             exp_enabled, exp_freq, min_train_months, len(months)
         )
+        if sw_col:
+            LOG.info("[weighting] Sample weights enabled. Column='%s', Clip=%s", sw_col, sw_clip)
 
-# ---------------------------------------------------------------------
-        # Step runner: trains on (train, val), tests on exactly one month
+        # ---------------------------------------------------------------------
+        # Helper: Centralized Bucket Definitions (Moneyness & DTE)
+        # ---------------------------------------------------------------------
+        def _get_bucket_masks(df_subset: pd.DataFrame) -> Dict[str, np.ndarray]:
+            """Returns a dictionary of {bucket_name: boolean_mask_array}"""
+            masks = {}
+            n = len(df_subset)
+            if n == 0: return masks
+
+            # 1. DTE Buckets
+            if "dte" in df_subset.columns:
+                masks["dte_1_7"] = (df_subset["dte"] <= 7).to_numpy()
+                masks["dte_8_31"] = (df_subset["dte"] > 7).to_numpy()
+
+            # 2. Moneyness Buckets (ITM, ATM, OTM)
+            if mcol in df_subset.columns:
+                mny_vals = pd.to_numeric(df_subset[mcol], errors="coerce").to_numpy(dtype=float)
+                
+                # Normalize types to call/put
+                if tcol in df_subset.columns:
+                    # Simple normalizer for speed
+                    raw_types = df_subset[tcol].astype(str).str.lower().str.strip()
+                    is_call = raw_types.isin(["c", "call", "1", "true"]).to_numpy()
+                else:
+                    is_call = np.ones(n, dtype=bool) # Default to call if missing
+                
+                is_put = ~is_call
+
+                # Determine ATM Logic
+                lo, hi = atm_band
+                name = str(mcol).lower()
+                is_logratio = ("log" in name) and ("std" not in name)
+                is_standardized = ("std" in name) or ("degree" in name)
+
+                if is_logratio:
+                    lo_t, hi_t = np.log(lo) if lo > 0 else -0.02, np.log(hi) if hi > 0 else 0.02
+                    atm_mask = (mny_vals >= lo_t) & (mny_vals <= hi_t)
+                    itm_mask = (is_call & (mny_vals < lo_t)) | (is_put & (mny_vals > hi_t))
+                elif is_standardized:
+                    atm_mask = (mny_vals >= lo) & (mny_vals <= hi)
+                    itm_mask = (is_call & (mny_vals < lo)) | (is_put & (mny_vals > hi))
+                else:
+                    # Standard K/S ratio (approx 1.0)
+                    atm_mask = (mny_vals >= lo) & (mny_vals <= hi)
+                    itm_mask = (is_call & (mny_vals > hi)) | (is_put & (mny_vals < lo))
+                
+                otm_mask = ~atm_mask & ~itm_mask
+
+                masks["itm"] = itm_mask
+                masks["atm"] = atm_mask
+                masks["otm"] = otm_mask
+
+            return masks
+
+        # ---------------------------------------------------------------------
+        # Helper: Export Suite (Metrics + Weighted + Portfolio + Recursive Buckets)
+        # ---------------------------------------------------------------------
+        def _export_suite(df_res: pd.DataFrame, out_path: str, label: str = ""):
+            """Generates metrics.csv, metrics_weighted.csv, and portfolio/ for a result DF."""
+            ensure_dir(out_path)
+            
+            # 1. Identify Models
+            model_cols = [
+                c for c in df_res.columns 
+                if c.startswith("yhat_") 
+                and not c.startswith("yhat_usd_") 
+                and not c.startswith("yhat_per_dollar_")
+            ]
+            preds = {c.replace("yhat_", "", 1): df_res[c].to_numpy(dtype=float) for c in model_cols}
+            
+            y_true = df_res["y_target"].to_numpy(dtype=float)
+            ids = pd.to_datetime(df_res["group"]).to_numpy()
+            
+            # 2. Standard Metrics
+            export_metrics(
+                y_true, preds, ids, out_path, 
+                y_true_winsor_aligned=None, 
+                filename="metrics.csv"
+            )
+            
+            # 3. Weighted Metrics (Calculated for Main AND Buckets)
+            if sw_col and sw_col in df_res.columns:
+                w = pd.to_numeric(df_res[sw_col], errors='coerce').fillna(0.0).values
+                if sw_clip: 
+                    w = np.clip(w, sw_clip[0], sw_clip[1])
+                
+                export_weighted_metrics(y_true, preds, ids, w, out_path, filename="metrics_weighted.csv")
+            
+            # 4. Portfolios
+            pf_out = ensure_dir(os.path.join(out_path, "portfolio"))
+            export_portfolios_raw(
+                y=y_true,
+                preds_scores={nm: df_res[f"yhat_{nm}"].to_numpy() for nm in preds.keys()},
+                ids=ids,
+                out_dir=pf_out,
+                n_bins=int((cfg.get("portfolio", {}) or {}).get("n_bins", 3)),
+                normalize_group_to_day=True,
+                write_ic=True,
+            )
+            
+            # 5. Recursive Subsets (ITM, ATM, OTM, DTE1-7, DTE8-31)
+            # Only do this from the "main" call to avoid infinite recursion
+            if label == "main":
+                bucket_masks = _get_bucket_masks(df_res)
+                for bucket_name, mask in bucket_masks.items():
+                    if not mask.any(): continue
+                    # Recurse: This will trigger Weighted Metrics + Portfolio for this bucket
+                    sub_out = ensure_dir(os.path.join(out_path, bucket_name))
+                    _export_suite(df_res[mask].copy(), sub_out, label="subset")
+
+        # ---------------------------------------------------------------------
+        # Step runner
         # ---------------------------------------------------------------------
         def _run_one_step(
             *,
@@ -2410,18 +2705,13 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 level=cfg.get("logging", {}).get("level", "INFO"),
             )
             
-            # Initialize return variables to satisfy linters/safety
             step_summary = {}
             shap_payload = {}
             best_by_algo = {} 
 
             try:
                 LOG.info("=== Expanding step: %s ===", step_label)
-                LOG.info("Step out_dir: %s", step_out_dir)
-                LOG.info("train_end=%s | test_month=%s", step_train_end, step_test_month)
-                LOG.info("Split sizes: train=%d | val=%d | test=%d", len(df_tr), len(df_va), len(df_te))
-
-                # --- 1. PREPARE DATA ---
+                # ... (Preprocessing logic remains same) ...
                 X_tr_lin_raw = df_tr[feat_cols_lin].to_numpy(dtype=float)
                 X_va_lin_raw = df_va[feat_cols_lin].to_numpy(dtype=float)
                 X_te_lin_raw = df_te[feat_cols_lin].to_numpy(dtype=float)
@@ -2439,7 +2729,6 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 d_tr = pd.to_datetime(df_tr[date_col].to_numpy())
                 d_va = pd.to_datetime(df_va[date_col].to_numpy())
 
-                # --- 2. TARGET NORMALIZATION & GUARDRAILS ---
                 tn_cfg = (cfg.get("data", {}).get("target_norm") or {"kind": "none"})
                 normaliser = TargetNormalizer(
                     kind=tn_cfg.get("kind", "none"),
@@ -2458,9 +2747,7 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 z_va = guard.forward(y_va_model)
                 z_te_all = guard.forward(y_te_model_all)
 
-                # --- 3. FEATURE PREPROCESSING ---
                 pp_cfg = cfg.get("preprocess", {}) or {}
-
                 pp_linear = preprocess_fit(X_tr_lin_raw, pp_cfg.get("linear_nn", {}))
                 pp_ffn = preprocess_fit(X_tr_lin_raw, {**pp_cfg.get("linear_nn", {}), "yeo_johnson": False, "standardize": False})
                 pp_trees = preprocess_fit(X_tr_non_raw, pp_cfg.get("trees", {}))
@@ -2468,11 +2755,9 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 X_tr_lin = preprocess_apply(X_tr_lin_raw, pp_linear)
                 X_va_lin = preprocess_apply(X_va_lin_raw, pp_linear)
                 X_te_lin = preprocess_apply(X_te_lin_raw, pp_linear)
-
                 X_tr_ffn = preprocess_apply(X_tr_lin_raw, pp_ffn)
                 X_va_ffn = preprocess_apply(X_va_lin_raw, pp_ffn)
                 X_te_ffn = preprocess_apply(X_te_lin_raw, pp_ffn)
-
                 X_tr_non = preprocess_apply(X_tr_non_raw, pp_trees)
                 X_va_non = preprocess_apply(X_va_non_raw, pp_trees)
                 X_te_non = preprocess_apply(X_te_non_raw, pp_trees)
@@ -2481,7 +2766,6 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 feat_names_ffn = feature_names_after_pp(pp_ffn, feat_cols_lin)
                 feat_names_non = feature_names_after_pp(pp_trees, feat_cols_non)
 
-                # --- 4. FILTER FINITE Y ---
                 X_tr_lin, z_tr, d_tr, _, mask_tr = _filter_finite_y(X_tr_lin, z_tr, d_tr, split_name="train")
                 X_va_lin, z_va, d_va, _, mask_va = _filter_finite_y(X_va_lin, z_va, d_va, split_name="val")
                 X_te_lin, z_te, ids_te, _, mask_te = _filter_finite_y(X_te_lin, z_te_all, ids_te_all, split_name="test")
@@ -2489,12 +2773,21 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 X_tr_ffn, X_va_ffn, X_te_ffn = X_tr_ffn[mask_tr], X_va_ffn[mask_va], X_te_ffn[mask_te]
                 X_tr_non, X_va_non, X_te_non = X_tr_non[mask_tr], X_va_non[mask_va], X_te_non[mask_te]
 
+                w_tr_final, w_va_final = None, None
+                if sw_col:
+                    def _get_w(df_src, mask):
+                        if sw_col not in df_src.columns: return np.ones(mask.sum())
+                        raw = pd.to_numeric(df_src[sw_col], errors='coerce').fillna(0.0).values
+                        if sw_clip: raw = np.clip(raw, sw_clip[0], sw_clip[1])
+                        return raw[mask]
+                    w_tr_final = _get_w(df_tr, mask_tr)
+                    w_va_final = _get_w(df_va, mask_va)
+
                 y_te_target = y_te_target_all[mask_te]
                 y_te_raw = y_te_raw_all[mask_te]
                 g_te = g_te_all[mask_te]
                 y_te_target_winsor = winsor_aligned_target(y_te_target, g_te, guard)
 
-                # --- 5. SETUP CV ---
                 registry = registry_from_yaml(cfg)
                 enable = cfg["models"]["enable"]
                 linear_list = [m for m in enable.get("linear", []) if m in registry]
@@ -2504,8 +2797,7 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
 
                 _, g_tr_all = normaliser.apply(y_tr_target, df_tr, target_col=target_col)
                 _, g_va_all = normaliser.apply(y_va_target, df_va, target_col=target_col)
-                g_tr_f = g_tr_all[mask_tr]
-                g_va_f = g_va_all[mask_va]
+                g_tr_f, g_va_f = g_tr_all[mask_tr], g_va_all[mask_va]
                 y_tr_from_z = normaliser.invert(guard.inverse(z_tr), g_tr_f)
                 y_va_from_z = normaliser.invert(guard.inverse(z_va), g_va_f)
 
@@ -2523,37 +2815,21 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 tcfg = cfg.get("tuning", {})
                 cv_cfg = (tcfg.get("cv") or {})
                 strategy, n_iter, keep_top_k, seed = tcfg.get("strategy", "random"), int(tcfg.get("n_iter", 1)), int(tcfg.get("keep_top_k", 1)), int(tcfg.get("seed", 0))
-                cv_records: List[Dict[str, Any]] = []
+                cv_records = []
 
-                # --- 6. TRAINING ---
                 LOG.info("Training linear: %s", linear_list)
-                models_lin = fit_family(
-                    registry, X_tr_lin, z_tr, X_va_lin, z_va, linear_list, strategy, n_iter, keep_top_k, seed,
-                    cv_records, d_tr, d_va, cv_cfg, inverse_to_target_fn=_inverse_to_target, y_cv_target=y_cv_target,
-                )
-
+                models_lin = fit_family(registry, X_tr_lin, z_tr, X_va_lin, z_va, linear_list, strategy, n_iter, keep_top_k, seed, cv_records, d_tr, d_va, w_tr_final, w_va_final, cv_cfg, _inverse_to_target, y_cv_target)
                 LOG.info("Training FFN: %s", nn_list)
-                models_nn = fit_family(
-                    registry, X_tr_ffn, z_tr, X_va_ffn, z_va, nn_list, strategy, n_iter, keep_top_k, seed,
-                    cv_records, d_tr, d_va, cv_cfg, inverse_to_target_fn=_inverse_to_target, y_cv_target=y_cv_target,
-                )
-
+                models_nn = fit_family(registry, X_tr_ffn, z_tr, X_va_ffn, z_va, nn_list, strategy, n_iter, keep_top_k, seed, cv_records, d_tr, d_va, w_tr_final, w_va_final, cv_cfg, _inverse_to_target, y_cv_target)
                 LOG.info("Training trees: %s", trees_list)
-                models_trees = fit_family(
-                    registry, X_tr_non, z_tr, X_va_non, z_va, trees_list, strategy, n_iter, keep_top_k, seed,
-                    cv_records, d_tr, d_va, cv_cfg, inverse_to_target_fn=_inverse_to_target, y_cv_target=y_cv_target,
-                )
+                models_trees = fit_family(registry, X_tr_non, z_tr, X_va_non, z_va, trees_list, strategy, n_iter, keep_top_k, seed, cv_records, d_tr, d_va, w_tr_final, w_va_final, cv_cfg, _inverse_to_target, y_cv_target)
 
                 build_ens = bool(cfg.get("tuning", {}).get("build_family_ensemble", True))
                 if build_ens and models_lin:
                     models_lin["L-En"] = build_equal_weight_ensemble(list(models_lin.keys()), models_lin)
 
-                # --- 7. PREDICTION ---
-                preds_in_target_units: Dict[str, np.ndarray] = {}
-
-                for grp_name, models_grp, X_te_grp in [
-                    ("lin", models_lin, X_te_lin), ("nn", models_nn, X_te_ffn), ("trees", models_trees, X_te_non)
-                ]:
+                preds_in_target_units = {}
+                for grp_name, models_grp, X_te_grp in [("lin", models_lin, X_te_lin), ("nn", models_nn, X_te_ffn), ("trees", models_trees, X_te_non)]:
                     for name, m in models_grp.items():
                         z_hat = m.predict(X_te_grp)
                         if guard.enabled_winsor and guard._lo is not None and guard._hi is not None:
@@ -2562,25 +2838,23 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                         preds_in_target_units[name] = y_hat
                         log_pred_stats(y_te_target, y_hat, ids_te, model_name=name)
 
-                # N-En
                 nonlin_base_pred = {"rf", "lgbm_gbdt", "lgbm_dart", "ffn"}
                 nonlin_member_names_pred = [nm for nm in preds_in_target_units.keys() if nm.split("#", 1)[0] in nonlin_base_pred]
                 if nonlin_member_names_pred:
                     nl_stack = np.column_stack([preds_in_target_units[nm] for nm in nonlin_member_names_pred])
                     preds_in_target_units["N-En"] = nl_stack.mean(axis=1)
 
-                # Exports
                 export_models_table(models_lin, "linear", step_out_dir)
                 export_models_table({**models_nn, **models_trees}, "nonlinear", step_out_dir)
                 export_linear_coefficients(models_lin, feat_names_lin, step_out_dir)
-                if cv_records:
-                    pd.DataFrame(cv_records).to_csv(os.path.join(step_out_dir, "cv_results.csv"), index=False)
+                if cv_records: pd.DataFrame(cv_records).to_csv(os.path.join(step_out_dir, "cv_results.csv"), index=False)
 
-                aux_candidates = ["dte", "vega_1volpt", "mid_t", "opt_rel_spread_final", "abs_delta", tcol, mcol, "tau", "atm_iv"]
-                pred_df = build_predictions_frame(
-                    ids_te=ids_te, y_te_target=y_te_target, y_te_raw=y_te_raw, preds_in_target_units=preds_in_target_units,
-                    df_te=df_te, mask_te=mask_te, aux_candidates=aux_candidates,
-                )
+                # Deduplicate aux candidates
+                raw_candidates = ["dte", "vega_1volpt", "mid_t", "opt_rel_spread_final", "abs_delta", tcol, mcol, "tau", "atm_iv"]
+                if sw_col: raw_candidates.append(sw_col)
+                aux_candidates = list(dict.fromkeys([c for c in raw_candidates if c]))
+
+                pred_df = build_predictions_frame(ids_te, y_te_target, y_te_raw, preds_in_target_units, df_te=df_te, mask_te=mask_te, aux_candidates=aux_candidates)
                 pred_df["step_label"] = step_label
                 pred_df["train_end_month"] = step_train_end
                 pred_df["test_month"] = step_test_month
@@ -2593,19 +2867,19 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
 
                 pred_df.to_csv(os.path.join(step_out_dir, "predictions.csv"), index=False)
 
-                export_metrics(y_te_target, preds_in_target_units, pd.to_datetime(ids_te).to_numpy(), step_out_dir, y_true_winsor_aligned=y_te_target_winsor, filename="metrics.csv")
+                # Use Helper for all metrics & subsets (Per-Step)
+                _export_suite(pred_df, step_out_dir, label="main")
+                
                 export_diag_all(y_te_target, y_te_raw, preds_in_target_units, step_out_dir, pd.to_datetime(ids_te).to_numpy())
                 print(f"[baseline] TE: mse0={np.mean(y_te_target**2):.6g} mean(y)={np.mean(y_te_target):.3g} std(y)={np.std(y_te_target):.3g}")
 
-                # --- 8. SHAP (Per Step) ---
+                # SHAP logic
                 shap_cfg = (cfg.get("explain", {}).get("shap", {}) or {})
                 shap_enabled = bool(shap_cfg.get("enabled", True))
                 run_all_shap = ("all" in shap_cfg.get("models", ["best"]))
 
                 if shap_enabled:
                     shap_out_dir = ensure_dir(os.path.join(step_out_dir, "SHAP"))
-                    
-                    # Compute best_by_algo
                     def _base_algo(nm: str) -> str: return nm.split("#", 1)[0]
                     r2_test = {nm: r2_os(y_te_target, yhat) for nm, yhat in preds_in_target_units.items()}
                     for nm, score in r2_test.items():
@@ -2648,378 +2922,200 @@ def run_variant(cfg: Dict[str, Any], variant_label: str, feat_cols: List[str]) -
                 remove_handler(fh_step)
 
         # ---------------------------------------------------------------------
-        # Single-split mode (original 70/15/15) OR Expanding loop
+        # Single-split mode
         # ---------------------------------------------------------------------
         if not exp_enabled:
-            # --- SINGLE ESTIMATION: 70 / 15 / 15 split ---
             LOG.info("[single-split] Running single estimation (expanding_eval.enabled=false)")
-
-            df_tr, df_va, df_te = time_split(
-                df, date_col, tr=tr_frac, va=va_frac, purge_gap=purge_gap
-            )
+            df_tr, df_va, df_te = time_split(df, date_col, tr=tr_frac, va=va_frac, purge_gap=purge_gap)
             if df_va.empty:
                 LOG.warning("[single-split] empty val after purge; retrying with purge_gap=0")
                 df_tr, df_va, df_te = time_split(df, date_col, tr=tr_frac, va=va_frac, purge_gap=0)
-
             if df_te.empty:
                 raise ValueError("[single-split] Test set is empty after time_split.")
+            LOG.info("[single-split] Split sizes: train=%d | val=%d | test=%d", len(df_tr), len(df_va), len(df_te))
 
-            LOG.info(
-                "[single-split] Split sizes: train=%d | val=%d | test=%d",
-                len(df_tr), len(df_va), len(df_te),
-            )
-
-            # Use base_out_dir directly for outputs (no monthly/ subfolder)
             pred_df, step_sum, last_shap_payload = _run_one_step(
-                step_out_dir=base_out_dir,
-                df_tr=df_tr,
-                df_va=df_va,
-                df_te=df_te,
-                step_label="single_split",
-                step_train_end="N/A",
-                step_test_month="N/A",
+                step_out_dir=base_out_dir, df_tr=df_tr, df_va=df_va, df_te=df_te,
+                step_label="single_split", step_train_end="N/A", step_test_month="N/A",
             )
-
-            # Save predictions (rename to match expanding output name for consistency)
             pred_df.to_csv(os.path.join(base_out_dir, "predictions.csv"), index=False)
 
-            # Aggregate metrics (same file as expanding would produce)
-            y_all = pred_df["y_target"].to_numpy(dtype=float)
-            ids_all = pd.to_datetime(pred_df["group"]).to_numpy()
+            # Use Helper for all metrics & subsets (Single Split Main)
+            _export_suite(pred_df, base_out_dir, label="main")
 
-            model_cols = [
-                c for c in pred_df.columns
-                if c.startswith("yhat_")
-                and (not c.startswith("yhat_usd_"))
-                and (not c.startswith("yhat_per_dollar_"))
-            ]
-            preds_all_models: Dict[str, np.ndarray] = {}
-            for c in model_cols:
-                nm = c.replace("yhat_", "", 1)
-                preds_all_models[nm] = pred_df[c].to_numpy(dtype=float)
-
-            export_metrics(
-                y_all,
-                preds_all_models,
-                ids_all,
-                base_out_dir,
-                y_true_winsor_aligned=None,
-                filename="metrics.csv",
-            )
-
-            # Portfolio metrics
-            pf_out = ensure_dir(os.path.join(base_out_dir, "portfolio"))
-            export_portfolios_raw(
-                y=pred_df["y_target"].to_numpy(),
-                preds_scores={nm: pred_df[f"yhat_{nm}"].to_numpy() for nm in preds_all_models.keys()},
-                ids=pd.to_datetime(pred_df["group"]).to_numpy(),
-                out_dir=pf_out,
-                n_bins=int((cfg.get("portfolio", {}) or {}).get("n_bins", 3)),
-                normalize_group_to_day=True,
-                write_ic=True,
-            )
-
-            # Final SHAP (N-En only)
+            # Final SHAP (Single Split)
             shap_conf = (cfg.get("explain", {}).get("shap", {}) or {})
             if last_shap_payload is not None and bool(shap_conf.get("enabled", True)):
+                final_shap_dir = ensure_dir(os.path.join(base_out_dir, "SHAP"))
+                LOG.info("[SHAP] Generating SHAP for all individual models (Single-Split)...")
+                models_dict = last_shap_payload.get("all_models", {})
+                for model_name in models_dict.keys():
+                    if "ffn" in model_name.lower():
+                        X_use, feats_use = last_shap_payload.get("X_te_ffn"), last_shap_payload.get("feat_names_ffn")
+                    elif any(x in model_name.lower() for x in ["rf", "lgbm", "xgb", "gbdt", "dart"]):
+                        X_use, feats_use = last_shap_payload.get("X_te_non"), last_shap_payload.get("feat_names_non")
+                    else:
+                        X_use, feats_use = last_shap_payload.get("X_te_lin"), last_shap_payload.get("feat_names_lin")
+                    if X_use is not None and feats_use is not None:
+                        try_export_shap(models_dict, X_use, feats_use, final_shap_dir, model_name, cfg)
+
                 if "best_by_algo" in last_shap_payload and last_shap_payload["best_by_algo"]:
-                    final_shap_dir = ensure_dir(os.path.join(base_out_dir, "SHAP"))
                     export_shap_n_en(
+                        all_models=last_shap_payload["all_models"],
+                        best_by_algo=last_shap_payload["best_by_algo"],
+                        X_te_non=last_shap_payload["X_te_non"],
+                        X_te_ffn=last_shap_payload["X_te_ffn"],
+                        df_te=last_shap_payload["df_te"],
+                        mask_te=last_shap_payload["mask_te"],
+                        feat_names_non=last_shap_payload["feat_names_non"],
+                        feat_names_ffn=last_shap_payload["feat_names_ffn"],
                         out_dir=final_shap_dir,
                         cfg=cfg,
-                        **last_shap_payload,
                     )
 
-            summary_root.update(
-                {
-                    "single_split": {
-                        "enabled": True,
-                        "train_frac": tr_frac,
-                        "val_frac": va_frac,
-                        "test_frac": 1.0 - tr_frac - va_frac,
-                        "purge_gap": purge_gap,
-                        "n_train": int(len(df_tr)),
-                        "n_val": int(len(df_va)),
-                        "n_test": int(len(df_te)),
-                    }
-                }
-            )
+            summary_root.update({"single_split": {"enabled": True, "train_frac": tr_frac, "val_frac": va_frac, "test_frac": 1.0 - tr_frac - va_frac, "purge_gap": purge_gap, "n_train": int(len(df_tr)), "n_val": int(len(df_va)), "n_test": int(len(df_te))}})
             with open(os.path.join(base_out_dir, "run_summary.json"), "w") as f:
                 json.dump(summary_root, f, indent=2, ensure_ascii=False, default=_safe_jsonable)
-
             LOG.info("Single-split variant complete. Yay! :)")
-            return  # Exit early; skip expanding loop below
-
+            return
 
         # --- EXPANDING WINDOW ESTIMATION ---
-        all_preds: List[pd.DataFrame] = []
-        step_summaries: List[Dict[str, Any]] = []
-        last_shap_payload: Optional[Dict[str, Any]] = None
-
+        all_preds, step_summaries, last_shap_payload = [], [], None
         for i in range(min_train_months - 1, len(months) - 1):
-            train_end = months[i]
-            test_m = months[i + 1]
-
-            train_mask = period <= train_end
-            test_mask = period == test_m
-
-            df_train_full = df.loc[train_mask].copy()
-            df_test_month = df.loc[test_mask].copy()
-
+            train_end, test_m = months[i], months[i + 1]
+            train_mask, test_mask = period <= train_end, period == test_m
+            df_train_full, df_test_month = df.loc[train_mask].copy(), df.loc[test_mask].copy()
             if df_test_month.empty:
                 LOG.info("[expanding] skip test_month=%s (no observations)", str(test_m))
                 continue
-
             df_tr, df_va, _ = time_split(df_train_full, date_col, tr=tr_frac, va=va_frac, purge_gap=purge_gap)
             if df_va.empty:
                 LOG.warning("[expanding] empty val after purge; retry purge_gap=0 for step %s", str(test_m))
                 df_tr, df_va, _ = time_split(df_train_full, date_col, tr=tr_frac, va=va_frac, purge_gap=0)
-
-            step_label = f"train_to_{str(train_end)}__test_{str(test_m)}"
+            
             step_out_dir = ensure_dir(os.path.join(monthly_root, str(test_m)))
-
             pred_df_step, step_sum, shap_payload = _run_one_step(
-                step_out_dir=step_out_dir,
-                df_tr=df_tr,
-                df_va=df_va,
-                df_te=df_test_month,
-                step_label=step_label,
-                step_train_end=str(train_end),
-                step_test_month=str(test_m),
+                step_out_dir=step_out_dir, df_tr=df_tr, df_va=df_va, df_te=df_test_month,
+                step_label=f"train_to_{str(train_end)}__test_{str(test_m)}",
+                step_train_end=str(train_end), step_test_month=str(test_m),
             )
-
             all_preds.append(pred_df_step)
             step_summaries.append(step_sum)
             last_shap_payload = shap_payload
 
         if not all_preds:
-            raise ValueError("No expanding-window steps produced predictions. Check date coverage after filters.")
+            raise ValueError("No expanding-window steps produced predictions.")
 
-        # ---------------------------------------------------------------------
-        # AGGREGATE OUTPUTS
-        # ---------------------------------------------------------------------
         pred_all = pd.concat(all_preds, axis=0, ignore_index=True)
         pred_all = pred_all.sort_values(["test_month", "group"], kind="stable").reset_index(drop=True)
-
         pred_all_path = os.path.join(base_out_dir, "predictions_expanding.csv")
         pred_all.to_csv(pred_all_path, index=False)
         LOG.info("Wrote expanding predictions: %s", pred_all_path)
 
-        steps_path = os.path.join(base_out_dir, "steps_summary.json")
-        with open(steps_path, "w") as f:
+        with open(os.path.join(base_out_dir, "steps_summary.json"), "w") as f:
             json.dump(step_summaries, f, indent=2, ensure_ascii=False, default=_safe_jsonable)
-        LOG.info("Wrote steps summary: %s", steps_path)
-        
+
+        # Use Helper for all metrics & subsets (Expanding Aggregate)
+        # 1. Filter Best-in-Class
+        model_cols = [c for c in pred_all.columns if c.startswith("yhat_") and "usd" not in c and "per_dollar" not in c]
+        preds_all_models = {c.replace("yhat_", "", 1): pred_all[c].to_numpy(dtype=float) for c in model_cols}
         y_all = pred_all["y_target"].to_numpy(dtype=float)
-        ids_all = pd.to_datetime(pred_all["group"]).to_numpy()
-
-        model_cols = [c for c in pred_all.columns if c.startswith("yhat_") 
-                      and not c.startswith("yhat_usd_") and not c.startswith("yhat_per_dollar_")]
-        
-        # 1. Collect ALL models
-        preds_all_models: Dict[str, np.ndarray] = {}
-        for c in model_cols:
-            nm = c.replace("yhat_", "", 1)
-            preds_all_models[nm] = pred_all[c].to_numpy(dtype=float)
-
-        # 2. SELECT BEST-IN-CLASS (Filter out the losers)
         r2_agg = {k: r2_os(y_all, v) for k, v in preds_all_models.items()}
         base_algos_seen = set(k.split("#")[0] for k in preds_all_models.keys())
-        
-        preds_best_only: Dict[str, np.ndarray] = {}
+        best_cols = []
         best_models_list = []
-
+        
         LOG.info("[Selection] Choosing best model variant per family based on Aggregate R2_OS:")
         for base in sorted(base_algos_seen):
             variants = [k for k in preds_all_models.keys() if k.split("#")[0] == base]
-            if not variants:
-                continue
+            if not variants: continue
             winner = max(variants, key=lambda k: r2_agg.get(k, -np.inf))
-            preds_best_only[winner] = preds_all_models[winner]
+            best_cols.append(f"yhat_{winner}")
             best_models_list.append(winner)
-            
             r2_win = r2_agg.get(winner, -np.inf)
             others = [v for v in variants if v != winner]
-            if others:
-                LOG.info(f"  > Family {base}: Winner={winner} (R2={r2_win:.4f}) | Dropped={others}")
-            else:
-                LOG.info(f"  > Family {base}: Winner={winner} (R2={r2_win:.4f}) | (Single variant)")
+            if others: LOG.info(f"  > Family {base}: Winner={winner} (R2={r2_win:.4f}) | Dropped={others}")
+            else: LOG.info(f"  > Family {base}: Winner={winner} (R2={r2_win:.4f})")
 
-        # 3. Export Aggregate Metrics (Best Models Only)
-        export_metrics(
-            y_all,
-            preds_best_only, 
-            ids_all,
-            base_out_dir,
-            y_true_winsor_aligned=None,
-            filename="metrics.csv",
-        )
+        # Create a df with ONLY the best models + metadata for export
+        meta_cols = [c for c in pred_all.columns if not c.startswith("yhat_")]
+        pred_best_df = pred_all[meta_cols + best_cols].copy()
         
-        # 4. Metrics per day (Best Models Only)
-        def _r2_os_cs_one_day(y: np.ndarray, yhat: np.ndarray) -> float:
-            y = np.asarray(y, dtype=float)
-            yhat = np.asarray(yhat, dtype=float)
-            good = np.isfinite(y) & np.isfinite(yhat)
-            if good.sum() < 5:
-                return np.nan
-            y = y[good]; yhat = yhat[good]
-            y_cs = y - y.mean()
-            yhat_cs = yhat - yhat.mean()
-            den = float(np.mean(y_cs ** 2))
-            if not np.isfinite(den) or den <= 0:
-                return np.nan
-            num = float(np.mean((y_cs - yhat_cs) ** 2))
-            return 1.0 - num / den
+        # Use Helper for Main + Subsets
+        _export_suite(pred_best_df, base_out_dir, label="main")
 
-        pred_all_tmp = pred_all.copy()
-        pred_all_tmp["_day"] = pd.to_datetime(pred_all_tmp["group"], errors="coerce").dt.normalize()
-        pred_all_tmp = pred_all_tmp.dropna(subset=["_day"])
-
-        days = np.array(sorted(pred_all_tmp["_day"].unique()))
-        # UPDATED: Use best_models_list instead of all models
+        # Daily Metrics (Expanding)
+        pred_all_tmp = pred_all.copy().dropna(subset=["group"])
+        pred_all_tmp["_day"] = pd.to_datetime(pred_all_tmp["group"]).dt.normalize()
+        days = sorted(pred_all_tmp["_day"].unique())
         models_day = sorted(best_models_list)
-
         r2_day = pd.DataFrame(index=pd.to_datetime(days), columns=models_day, dtype=float)
-        r2_day_xs = pd.DataFrame(index=pd.to_datetime(days), columns=models_day, dtype=float)
-
+        
         for day, d in pred_all_tmp.groupby("_day", sort=True):
             y = d["y_target"].to_numpy(dtype=float)
             for nm in models_day:
                 yhat = d[f"yhat_{nm}"].to_numpy(dtype=float)
                 r2_day.loc[pd.Timestamp(day), nm] = r2_os(y, yhat)
-                r2_day_xs.loc[pd.Timestamp(day), nm] = _r2_os_cs_one_day(y, yhat)
 
-        r2_day.reset_index().rename(columns={"index": "date"}).to_csv(
-            os.path.join(base_out_dir, "metrics_per_day.csv"), index=False
-        )
-        r2_day_xs.reset_index().rename(columns={"index": "date"}).to_csv(
-            os.path.join(base_out_dir, "metrics_per_day_xs.csv"), index=False
-        )
-        
-        # 5. Export Portfolio (Best Models Only)
-        pf_out = ensure_dir(os.path.join(base_out_dir, "portfolio"))
-        export_portfolios_raw(
-            y=pred_all["y_target"].to_numpy(),
-            preds_scores={nm: pred_all[f"yhat_{nm}"].to_numpy() for nm in preds_best_only.keys()},
-            ids=pd.to_datetime(pred_all["group"]).to_numpy(),
-            out_dir=pf_out,
-            n_bins=int((cfg.get("portfolio", {}) or {}).get("n_bins", 3)),
-            normalize_group_to_day=True,
-            write_ic=True,
-        )
-        
-        # 6. Metrics & Portfolio for DTE Subsets (Best Models Only)
-        if "dte" in pred_all.columns:
-            for sub_name, mask in [("dte_1_7", pred_all["dte"] <= 7), ("dte_8_31", pred_all["dte"] > 7)]:
-                if not mask.any():
-                    continue
-                
-                sub_dir = ensure_dir(os.path.join(base_out_dir, sub_name))
-                y_sub = y_all[mask]
-                ids_sub = ids_all[mask]
-                preds_sub = {k: v[mask] for k, v in preds_best_only.items()}
-                
-                export_metrics(
-                    y_sub, preds_sub, ids_sub, sub_dir,
-                    y_true_winsor_aligned=None, filename="metrics.csv",
-                )
-                
-                pf_out_sub = ensure_dir(os.path.join(sub_dir, "portfolio"))
-                export_portfolios_raw(
-                    y=pred_all.loc[mask, "y_target"].to_numpy(),
-                    preds_scores={nm: pred_all.loc[mask, f"yhat_{nm}"].to_numpy() for nm in preds_best_only.keys()},
-                    ids=pd.to_datetime(pred_all.loc[mask, "group"]).to_numpy(),
-                    out_dir=pf_out_sub,
-                    n_bins=int((cfg.get("portfolio", {}) or {}).get("n_bins", 3)),
-                    normalize_group_to_day=True,
-                    write_ic=True,
-                )
+        r2_day.reset_index().rename(columns={"index": "date"}).to_csv(os.path.join(base_out_dir, "metrics_per_day.csv"), index=False)
 
-        # -------------------------------------------------------------------------
-        # Final-step SHAP: Best-in-Class + N-En (Split by DTE)
-        # -------------------------------------------------------------------------
+        # Final SHAP (Expanding)
         shap_conf = (cfg.get("explain", {}).get("shap", {}) or {})
-        
         if last_shap_payload is not None and bool(shap_conf.get("enabled", True)):
             final_shap_dir = ensure_dir(os.path.join(base_out_dir, "SHAP"))
-            
-            # Prepare Data for Splitting from Last Step
-            df_last = last_shap_payload["df_te"]
-            mask_last = last_shap_payload["mask_te"]
+            df_last, mask_last = last_shap_payload["df_te"], last_shap_payload["mask_te"]
             valid_df = df_last.loc[mask_last].reset_index(drop=True)
-            
             idx_all = np.arange(len(valid_df))
-            idx_short = np.where(valid_df["dte"] <= 7)[0]
-            idx_long = np.where(valid_df["dte"] > 7)[0]
             
-            splits = [("all", idx_all), ("dte_1_7", idx_short), ("dte_8_31", idx_long)]
+            # --- SHAP SPLITS (Bucket Logic) ---
+            # We use the same _get_bucket_masks logic, but we must apply it to 'valid_df'
+            # to get the correct integer indices for SHAP
+            shap_splits = [("all", idx_all)]
+            
+            bucket_masks = _get_bucket_masks(valid_df)
+            for bucket_name, mask in bucket_masks.items():
+                indices = np.where(mask)[0]
+                shap_splits.append((bucket_name, indices))
+
             models_dict = last_shap_payload.get("all_models", {})
 
-            for label, indices in splits:
+            for label, indices in shap_splits:
                 if len(indices) < 20: 
                     LOG.info(f"[SHAP] Skipping subset {label} (n={len(indices)} too small)")
                     continue
-                    
                 label_dir = ensure_dir(os.path.join(final_shap_dir, label))
                 LOG.info(f"[SHAP] Generating plots for subset: {label} (n={len(indices)})")
                 
-                # Explain Best Individual Models
                 for model_name in best_models_list:
-                    if model_name not in models_dict:
-                        continue
-
-                    # Route to correct X matrix
-                    if "ffn" in model_name.lower():
-                        X_use = last_shap_payload.get("X_te_ffn")
-                        feats_use = last_shap_payload.get("feat_names_ffn")
-                    elif any(x in model_name.lower() for x in ["rf", "lgbm", "xgb", "gbdt", "dart"]):
-                        X_use = last_shap_payload.get("X_te_non")
-                        feats_use = last_shap_payload.get("feat_names_non")
-                    else:
-                        X_use = last_shap_payload.get("X_te_lin")
-                        feats_use = last_shap_payload.get("feat_names_lin")
-
+                    if model_name not in models_dict: continue
+                    if "ffn" in model_name.lower(): X_use, feats_use = last_shap_payload.get("X_te_ffn"), last_shap_payload.get("feat_names_ffn")
+                    elif any(x in model_name.lower() for x in ["rf", "lgbm", "xgb", "gbdt", "dart"]): X_use, feats_use = last_shap_payload.get("X_te_non"), last_shap_payload.get("feat_names_non")
+                    else: X_use, feats_use = last_shap_payload.get("X_te_lin"), last_shap_payload.get("feat_names_lin")
+                    
                     if X_use is not None and feats_use is not None:
-                        X_subset = X_use[indices]
-                        try_export_shap(models_dict, X_subset, feats_use, label_dir, model_name, cfg)
+                        try_export_shap(models_dict, X_use[indices], feats_use, label_dir, model_name, cfg)
 
-                # Export N-En SHAP
                 if "best_by_algo" in last_shap_payload and last_shap_payload["best_by_algo"]:
-                    n_en_payload = {
-                        "all_models": models_dict,
-                        "best_by_algo": last_shap_payload["best_by_algo"],
-                        "X_te_non": last_shap_payload["X_te_non"][indices],
-                        "X_te_ffn": last_shap_payload["X_te_ffn"][indices],
-                        "df_te": valid_df.iloc[indices].reset_index(drop=True),
-                        "mask_te": np.ones(len(indices), dtype=bool),
-                        "feat_names_non": last_shap_payload["feat_names_non"],
-                        "feat_names_ffn": last_shap_payload["feat_names_ffn"],
-                        "out_dir": label_dir,
-                        "cfg": cfg
-                    }
-                    export_shap_n_en(**n_en_payload)
+                    export_shap_n_en(
+                        all_models=models_dict,
+                        best_by_algo=last_shap_payload["best_by_algo"],
+                        X_te_non=last_shap_payload["X_te_non"][indices],
+                        X_te_ffn=last_shap_payload["X_te_ffn"][indices],
+                        df_te=valid_df.iloc[indices].reset_index(drop=True),
+                        mask_te=np.ones(len(indices), dtype=bool),
+                        feat_names_non=last_shap_payload["feat_names_non"],
+                        feat_names_ffn=last_shap_payload["feat_names_ffn"],
+                        out_dir=label_dir,
+                        cfg=cfg
+                    )
 
-        summary_root.update(
-            {
-                "expanding_eval": {
-                    "enabled": True,
-                    "freq": exp_freq,
-                    "min_train_months": min_train_months,
-                    "months_total": int(len(months)),
-                    "steps_run": int(len(step_summaries)),
-                    "predictions_path": pred_all_path,
-                    "monthly_dir": monthly_root,
-                }
-            }
-        )
+        summary_root.update({"expanding_eval": {"enabled": True, "freq": exp_freq, "min_train_months": min_train_months, "months_total": int(len(months)), "steps_run": int(len(step_summaries)), "predictions_path": pred_all_path, "monthly_dir": monthly_root}})
         with open(os.path.join(base_out_dir, "run_summary.json"), "w") as f:
             json.dump(summary_root, f, indent=2, ensure_ascii=False, default=_safe_jsonable)
-
         LOG.info("Variant complete (expanding monthly). Yay! :)")
 
     finally:
         remove_handler(fh_variant)
-
 
 
 # =============================================================================

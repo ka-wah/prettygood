@@ -99,3 +99,413 @@
 2025-12-16 10:07:41,120 | INFO | [keep] pls#1 score=0.04204 params={'n_components': 3}
 2025-12-16 10:07:41,132 | INFO | [keep] pls#2 score=0.02859 params={'n_components': 4}
 2025-12-16 10:07:41,132 | INFO | Training FFN: ['ffn']
+2025-12-16 10:50:50,853 | INFO | [keep] ffn#1 score=0.06926 params={'ffn__activation': np.str_('relu'), 'ffn__batch_size': np.int64(64), 'ffn__device': np.str_('auto'), 'ffn__hidden_width': np.int64(64), 'ffn__huber_delta': np.float64(1.0), 'ffn__learning_rate': np.float64(0.0001), 'ffn__loss': np.str_('mse'), 'ffn__max_epochs': np.int64(100), 'ffn__n_hidden_layers': np.int64(1), 'ffn__patience': np.int64(10), 'ffn__seed': np.int64(0), 'ffn__val_split': np.float64(0.1), 'ffn__dropout': 0.39200724658983155, 'ffn__weight_decay': 0.0054475948916969}
+2025-12-16 10:51:32,674 | INFO | [keep] ffn#2 score=0.06905 params={'ffn__activation': np.str_('relu'), 'ffn__batch_size': np.int64(64), 'ffn__device': np.str_('auto'), 'ffn__hidden_width': np.int64(64), 'ffn__huber_delta': np.float64(1.0), 'ffn__learning_rate': np.float64(0.0001), 'ffn__loss': np.str_('mse'), 'ffn__max_epochs': np.int64(100), 'ffn__n_hidden_layers': np.int64(1), 'ffn__patience': np.int64(10), 'ffn__seed': np.int64(0), 'ffn__val_split': np.float64(0.1), 'ffn__dropout': 0.38536300757525715, 'ffn__weight_decay': 0.0010628542549908017}
+2025-12-16 10:51:32,675 | INFO | Training trees: ['rf', 'lgbm_gbdt', 'lgbm_dart']
+2025-12-16 10:52:26,114 | INFO | [keep] rf#1 score=0.08122 params={'bootstrap': True, 'max_depth': 8, 'max_features': 'log2', 'max_samples': 0.6, 'min_samples_leaf': 20, 'n_estimators': 100}
+2025-12-16 10:52:26,600 | INFO | [keep] rf#2 score=0.07976 params={'bootstrap': True, 'max_depth': 8, 'max_features': 'sqrt', 'max_samples': 0.6, 'min_samples_leaf': 20, 'n_estimators': 200}
+2025-12-16 10:52:36,787 | INFO | [keep] lgbm_gbdt#1 score=0.08518 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.6), 'learning_rate': np.float64(0.1), 'max_bin': np.int64(127), 'max_depth': np.int64(2), 'min_child_samples': np.int64(200), 'n_estimators': np.int64(100), 'num_leaves': np.int64(7), 'subsample': np.float64(0.8), 'verbosity': np.int64(-1), 'reg_alpha': 7.119112572276273, 'reg_lambda': 0.447322362903018} | n_estimators(refit)=39
+2025-12-16 10:52:36,827 | INFO | [keep] lgbm_gbdt#2 score=0.08158 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.6), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(63), 'max_depth': np.int64(2), 'min_child_samples': np.int64(100), 'n_estimators': np.int64(200), 'num_leaves': np.int64(7), 'subsample': np.float64(0.6), 'verbosity': np.int64(-1), 'reg_alpha': 8.787999124848584, 'reg_lambda': 5.706724970481976} | n_estimators(refit)=62
+2025-12-16 10:53:04,099 | INFO | [keep] lgbm_dart#1 score=0.08458 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.8), 'drop_rate': np.float64(0.5), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(127), 'max_depth': np.int64(6), 'max_drop': np.int64(20), 'min_child_samples': np.int64(50), 'min_child_weight': np.float64(0.01), 'min_split_gain': np.float64(0.1), 'n_estimators': np.int64(200), 'num_leaves': np.int64(15), 'skip_drop': np.float64(0.5), 'subsample': np.float64(0.6), 'verbosity': np.int64(-1), 'reg_alpha': 0.8301335256974502, 'reg_lambda': 92.5224254754638}
+2025-12-16 10:53:04,585 | INFO | [keep] lgbm_dart#2 score=0.08455 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.6), 'drop_rate': np.float64(0.3), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(127), 'max_depth': np.int64(6), 'max_drop': np.int64(20), 'min_child_samples': np.int64(100), 'min_child_weight': np.float64(0.1), 'min_split_gain': np.float64(0.1), 'n_estimators': np.int64(200), 'num_leaves': np.int64(31), 'skip_drop': np.float64(0.3), 'subsample': np.float64(0.8), 'verbosity': np.int64(-1), 'reg_alpha': 0.11331543612010862, 'reg_lambda': 5.912295566997817}
+2025-12-16 10:53:04,586 | INFO | [pred] ridge#1: n=521 R2_OS=0.08026 mse=4.56052 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.276 std=0.296 p1=-0.3 p99=0.968
+2025-12-16 10:53:04,586 | INFO | [pred] ridge#1: |err| q99=10.2089  tail_n=6/521  tail_share_SSE=69.88%
+2025-12-16 10:53:04,589 | INFO | [pred] ridge#1: per-day mse days=19 p50=0.564286 p90=13.8686 p99=26.4894 max=28.6048
+2025-12-16 10:53:04,589 | INFO | [pred] ridge#2: n=521 R2_OS=0.08039 mse=4.55987 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.275 std=0.297 p1=-0.302 p99=0.971
+2025-12-16 10:53:04,589 | INFO | [pred] ridge#2: |err| q99=10.2061  tail_n=6/521  tail_share_SSE=69.88%
+2025-12-16 10:53:04,591 | INFO | [pred] ridge#2: per-day mse days=19 p50=0.563579 p90=13.8643 p99=26.491 max=28.6067
+2025-12-16 10:53:04,592 | INFO | [pred] lasso#1: n=521 R2_OS=0.06582 mse=4.63211 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.308 std=0.238 p1=-0.135 p99=0.739
+2025-12-16 10:53:04,592 | INFO | [pred] lasso#1: |err| q99=10.3575  tail_n=6/521  tail_share_SSE=69.69%
+2025-12-16 10:53:04,594 | INFO | [pred] lasso#1: per-day mse days=19 p50=0.635926 p90=14.2714 p99=26.6112 max=28.7351
+2025-12-16 10:53:04,594 | INFO | [pred] lasso#2: n=521 R2_OS=0.06584 mse=4.63203 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.308 std=0.238 p1=-0.135 p99=0.739
+2025-12-16 10:53:04,594 | INFO | [pred] lasso#2: |err| q99=10.3576  tail_n=6/521  tail_share_SSE=69.69%
+2025-12-16 10:53:04,596 | INFO | [pred] lasso#2: per-day mse days=19 p50=0.63531 p90=14.2709 p99=26.6096 max=28.7332
+2025-12-16 10:53:04,596 | INFO | [pred] elasticnet#1: n=521 R2_OS=0.06543 mse=4.63406 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.302 std=0.235 p1=-0.135 p99=0.73
+2025-12-16 10:53:04,597 | INFO | [pred] elasticnet#1: |err| q99=10.3611  tail_n=6/521  tail_share_SSE=69.74%
+2025-12-16 10:53:04,598 | INFO | [pred] elasticnet#1: per-day mse days=19 p50=0.637543 p90=14.2885 p99=26.646 max=28.7745
+2025-12-16 10:53:04,599 | INFO | [pred] elasticnet#2: n=521 R2_OS=0.06575 mse=4.63247 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.306 std=0.237 p1=-0.135 p99=0.737
+2025-12-16 10:53:04,599 | INFO | [pred] elasticnet#2: |err| q99=10.3586  tail_n=6/521  tail_share_SSE=69.70%
+2025-12-16 10:53:04,601 | INFO | [pred] elasticnet#2: per-day mse days=19 p50=0.635533 p90=14.2748 p99=26.6197 max=28.7448
+2025-12-16 10:53:04,602 | INFO | [pred] pcr#1: n=521 R2_OS=0.04704 mse=4.72525 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.11 std=0.157 p1=-0.257 p99=0.509
+2025-12-16 10:53:04,602 | INFO | [pred] pcr#1: |err| q99=10.6126  tail_n=6/521  tail_share_SSE=70.57%
+2025-12-16 10:53:04,604 | INFO | [pred] pcr#1: per-day mse days=19 p50=0.508756 p90=14.7751 p99=27.7419 max=29.9934
+2025-12-16 10:53:04,604 | INFO | [pred] pcr#2: n=521 R2_OS=0.04704 mse=4.72525 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.11 std=0.157 p1=-0.257 p99=0.509
+2025-12-16 10:53:04,604 | INFO | [pred] pcr#2: |err| q99=10.6126  tail_n=6/521  tail_share_SSE=70.57%
+2025-12-16 10:53:04,606 | INFO | [pred] pcr#2: per-day mse days=19 p50=0.508756 p90=14.7751 p99=27.7419 max=29.9934
+2025-12-16 10:53:04,607 | INFO | [pred] pls#1: n=521 R2_OS=0.04905 mse=4.71527 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.529 std=0.667 p1=-0.792 p99=2.19
+2025-12-16 10:53:04,607 | INFO | [pred] pls#1: |err| q99=9.63304  tail_n=6/521  tail_share_SSE=64.42%
+2025-12-16 10:53:04,609 | INFO | [pred] pls#1: per-day mse days=19 p50=1.62187 p90=13.744 p99=25.633 max=27.9008
+2025-12-16 10:53:04,609 | INFO | [pred] pls#2: n=521 R2_OS=0.03987 mse=4.7608 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.546 std=0.672 p1=-0.75 p99=2.29
+2025-12-16 10:53:04,609 | INFO | [pred] pls#2: |err| q99=9.76889  tail_n=6/521  tail_share_SSE=63.89%
+2025-12-16 10:53:04,611 | INFO | [pred] pls#2: per-day mse days=19 p50=1.61091 p90=13.8834 p99=25.2849 max=27.4731
+2025-12-16 10:53:04,612 | INFO | [pred] L-En: n=521 R2_OS=0.07333 mse=4.59489 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.307 std=0.301 p1=-0.26 p99=0.901
+2025-12-16 10:53:04,613 | INFO | [pred] L-En: |err| q99=10.2917  tail_n=6/521  tail_share_SSE=69.70%
+2025-12-16 10:53:04,614 | INFO | [pred] L-En: per-day mse days=19 p50=0.647121 p90=14.1283 p99=26.5099 max=28.6843
+2025-12-16 10:53:04,616 | INFO | [pred] ffn#1: n=521 R2_OS=0.01897 mse=4.86442 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.75 std=0.85 p1=-0.53 p99=2.65
+2025-12-16 10:53:04,616 | INFO | [pred] ffn#1: |err| q99=9.29127  tail_n=6/521  tail_share_SSE=57.02%
+2025-12-16 10:53:04,618 | INFO | [pred] ffn#1: per-day mse days=19 p50=2.83215 p90=12.4615 p99=23.8071 max=25.6753
+2025-12-16 10:53:04,620 | INFO | [pred] ffn#2: n=521 R2_OS=0.01721 mse=4.87317 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.762 std=0.852 p1=-0.527 p99=2.67
+2025-12-16 10:53:04,620 | INFO | [pred] ffn#2: |err| q99=9.25147  tail_n=6/521  tail_share_SSE=56.75%
+2025-12-16 10:53:04,622 | INFO | [pred] ffn#2: per-day mse days=19 p50=2.82982 p90=12.4167 p99=23.7884 max=25.6543
+2025-12-16 10:53:04,634 | INFO | [pred] rf#1: n=521 R2_OS=0.06953 mse=4.61375 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.632 std=0.678 p1=-0.049 p99=2.44
+2025-12-16 10:53:04,634 | INFO | [pred] rf#1: |err| q99=9.48249  tail_n=6/521  tail_share_SSE=62.93%
+2025-12-16 10:53:04,636 | INFO | [pred] rf#1: per-day mse days=19 p50=2.07561 p90=12.9127 p99=24.4524 max=26.4786
+2025-12-16 10:53:04,659 | INFO | [pred] rf#2: n=521 R2_OS=0.06881 mse=4.61729 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.653 std=0.773 p1=-0.0644 p99=2.7
+2025-12-16 10:53:04,659 | INFO | [pred] rf#2: |err| q99=9.21238  tail_n=6/521  tail_share_SSE=61.73%
+2025-12-16 10:53:04,661 | INFO | [pred] rf#2: per-day mse days=19 p50=2.53011 p90=12.3475 p99=24.2448 max=26.3222
+2025-12-16 10:53:04,662 | INFO | [pred] lgbm_gbdt#1: n=521 R2_OS=0.04089 mse=4.75572 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.647 std=0.704 p1=-0.0315 p99=2.68
+2025-12-16 10:53:04,662 | INFO | [pred] lgbm_gbdt#1: |err| q99=9.52191  tail_n=6/521  tail_share_SSE=61.71%
+2025-12-16 10:53:04,664 | INFO | [pred] lgbm_gbdt#1: per-day mse days=19 p50=1.60323 p90=13.274 p99=23.9133 max=25.7288
+2025-12-16 10:53:04,665 | INFO | [pred] lgbm_gbdt#2: n=521 R2_OS=0.05622 mse=4.67971 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.632 std=0.642 p1=-0.0211 p99=2.31
+2025-12-16 10:53:04,665 | INFO | [pred] lgbm_gbdt#2: |err| q99=9.54321  tail_n=6/521  tail_share_SSE=62.86%
+2025-12-16 10:53:04,667 | INFO | [pred] lgbm_gbdt#2: per-day mse days=19 p50=1.63997 p90=13.1323 p99=24.1297 max=25.9718
+2025-12-16 10:53:04,669 | INFO | [pred] lgbm_dart#1: n=521 R2_OS=0.06289 mse=4.64665 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.5 std=0.565 p1=-0.183 p99=1.79
+2025-12-16 10:53:04,669 | INFO | [pred] lgbm_dart#1: |err| q99=10.0018  tail_n=6/521  tail_share_SSE=64.90%
+2025-12-16 10:53:04,671 | INFO | [pred] lgbm_dart#1: per-day mse days=19 p50=1.51066 p90=13.5856 p99=23.7631 max=25.4414
+2025-12-16 10:53:04,673 | INFO | [pred] lgbm_dart#2: n=521 R2_OS=0.07199 mse=4.60154 mse0=4.95849 | y mean=0.326 std=2.2 | yhat mean=0.617 std=0.691 p1=-0.0724 p99=2.36
+2025-12-16 10:53:04,673 | INFO | [pred] lgbm_dart#2: |err| q99=9.83227  tail_n=6/521  tail_share_SSE=62.19%
+2025-12-16 10:53:04,675 | INFO | [pred] lgbm_dart#2: per-day mse days=19 p50=1.47441 p90=13.2105 p99=23.4045 max=25.197
+2025-12-16 10:53:18,081 | INFO | === Expanding step: train_to_2023-04__test_2023-05 ===
+2025-12-16 10:53:18,086 | INFO | [guardrails] transform=none
+2025-12-16 10:53:18,086 | INFO | [guardrails] winsor z: lower_q=0.0050 (-1.7037), upper_q=0.9950 (16.0556)
+2025-12-16 10:53:18,385 | INFO | Training linear: ['ridge', 'lasso', 'elasticnet', 'pcr', 'pls']
+2025-12-16 10:53:21,356 | INFO | [keep] ridge#1 score=0.05420 params={'max_iter': np.int64(10000), 'alpha': 92.28295957427436}
+2025-12-16 10:53:21,366 | INFO | [keep] ridge#2 score=0.05372 params={'max_iter': np.int64(10000), 'alpha': 86.26905220714896}
+2025-12-16 10:53:25,932 | INFO | [keep] lasso#1 score=0.06452 params={'max_iter': np.int64(10000), 'alpha': 0.009030397288885933}
+2025-12-16 10:53:25,946 | INFO | [keep] lasso#2 score=0.06451 params={'max_iter': np.int64(10000), 'alpha': 0.008993930726120073}
+2025-12-16 10:53:32,786 | INFO | [keep] elasticnet#1 score=0.06452 params={'max_iter': np.int64(10000), 'alpha': 0.011663750298478014, 'l1_ratio': 0.8523455562022505}
+2025-12-16 10:53:32,870 | INFO | [keep] elasticnet#2 score=0.06442 params={'max_iter': np.int64(10000), 'alpha': 0.010865633249460467, 'l1_ratio': 0.8424650347724727}
+2025-12-16 10:53:33,785 | INFO | [keep] pcr#1 score=0.02078 params={'pca__n_components': 6, 'ridge__alpha': 0.0001}
+2025-12-16 10:53:33,798 | INFO | [keep] pcr#2 score=0.02078 params={'pca__n_components': 6, 'ridge__alpha': 0.001}
+2025-12-16 10:53:33,949 | INFO | [keep] pls#1 score=0.05227 params={'n_components': 1}
+2025-12-16 10:53:33,959 | INFO | [keep] pls#2 score=0.04403 params={'n_components': 2}
+2025-12-16 10:53:33,959 | INFO | Training FFN: ['ffn']
+2025-12-16 11:37:58,569 | INFO | [keep] ffn#1 score=0.07948 params={'ffn__activation': np.str_('relu'), 'ffn__batch_size': np.int64(64), 'ffn__device': np.str_('auto'), 'ffn__hidden_width': np.int64(64), 'ffn__huber_delta': np.float64(1.0), 'ffn__learning_rate': np.float64(0.0001), 'ffn__loss': np.str_('mse'), 'ffn__max_epochs': np.int64(100), 'ffn__n_hidden_layers': np.int64(1), 'ffn__patience': np.int64(10), 'ffn__seed': np.int64(0), 'ffn__val_split': np.float64(0.1), 'ffn__dropout': 0.38536300757525715, 'ffn__weight_decay': 0.0010628542549908017}
+2025-12-16 11:38:41,417 | INFO | [keep] ffn#2 score=0.07918 params={'ffn__activation': np.str_('relu'), 'ffn__batch_size': np.int64(64), 'ffn__device': np.str_('auto'), 'ffn__hidden_width': np.int64(64), 'ffn__huber_delta': np.float64(1.0), 'ffn__learning_rate': np.float64(0.0001), 'ffn__loss': np.str_('mse'), 'ffn__max_epochs': np.int64(100), 'ffn__n_hidden_layers': np.int64(1), 'ffn__patience': np.int64(10), 'ffn__seed': np.int64(0), 'ffn__val_split': np.float64(0.1), 'ffn__dropout': 0.39200724658983155, 'ffn__weight_decay': 0.0054475948916969}
+2025-12-16 11:38:41,417 | INFO | Training trees: ['rf', 'lgbm_gbdt', 'lgbm_dart']
+2025-12-16 11:39:34,740 | INFO | [keep] rf#1 score=0.09549 params={'bootstrap': True, 'max_depth': 8, 'max_features': 'sqrt', 'max_samples': 0.6, 'min_samples_leaf': 20, 'n_estimators': 200}
+2025-12-16 11:39:35,204 | INFO | [keep] rf#2 score=0.09243 params={'bootstrap': True, 'max_depth': 8, 'max_features': 'sqrt', 'max_samples': 0.6, 'min_samples_leaf': 50, 'n_estimators': 200}
+2025-12-16 11:39:45,317 | INFO | [keep] lgbm_gbdt#1 score=0.09137 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.6), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(127), 'max_depth': np.int64(2), 'min_child_samples': np.int64(100), 'n_estimators': np.int64(50), 'num_leaves': np.int64(31), 'subsample': np.float64(0.6), 'verbosity': np.int64(-1), 'reg_alpha': 1.0393953713074133, 'reg_lambda': 8.600399232968655} | n_estimators(refit)=49
+2025-12-16 11:39:45,353 | INFO | [keep] lgbm_gbdt#2 score=0.08964 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.8), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(127), 'max_depth': np.int64(2), 'min_child_samples': np.int64(100), 'n_estimators': np.int64(100), 'num_leaves': np.int64(31), 'subsample': np.float64(0.8), 'verbosity': np.int64(-1), 'reg_alpha': 0.1560004162305882, 'reg_lambda': 9.329677171778526} | n_estimators(refit)=49
+2025-12-16 11:40:17,569 | INFO | [keep] lgbm_dart#1 score=0.09648 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.8), 'drop_rate': np.float64(0.2), 'learning_rate': np.float64(0.02), 'max_bin': np.int64(63), 'max_depth': np.int64(6), 'max_drop': np.int64(10), 'min_child_samples': np.int64(100), 'min_child_weight': np.float64(0.01), 'min_split_gain': np.float64(0.1), 'n_estimators': np.int64(200), 'num_leaves': np.int64(31), 'skip_drop': np.float64(0.5), 'subsample': np.float64(0.6), 'verbosity': np.int64(-1), 'reg_alpha': 5.2520858151667795, 'reg_lambda': 2.372669804709427}
+2025-12-16 11:40:17,912 | INFO | [keep] lgbm_dart#2 score=0.09175 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.8), 'drop_rate': np.float64(0.3), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(127), 'max_depth': np.int64(4), 'max_drop': np.int64(20), 'min_child_samples': np.int64(100), 'min_child_weight': np.float64(0.01), 'min_split_gain': np.float64(0.05), 'n_estimators': np.int64(200), 'num_leaves': np.int64(7), 'skip_drop': np.float64(0.5), 'subsample': np.float64(0.8), 'verbosity': np.int64(-1), 'reg_alpha': 0.3495045912526374, 'reg_lambda': 23.207937002895026}
+2025-12-16 11:40:17,912 | INFO | [pred] ridge#1: n=597 R2_OS=0.04873 mse=5.11574 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.372 std=0.381 p1=-0.225 p99=1.42
+2025-12-16 11:40:17,913 | INFO | [pred] ridge#1: |err| q99=13.1107  tail_n=6/597  tail_share_SSE=52.06%
+2025-12-16 11:40:17,915 | INFO | [pred] ridge#1: per-day mse days=19 p50=0.840195 p90=17.9279 p99=82.7693 max=92.2777
+2025-12-16 11:40:17,915 | INFO | [pred] ridge#2: n=597 R2_OS=0.04844 mse=5.11735 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.373 std=0.382 p1=-0.226 p99=1.42
+2025-12-16 11:40:17,916 | INFO | [pred] ridge#2: |err| q99=13.1112  tail_n=6/597  tail_share_SSE=52.05%
+2025-12-16 11:40:17,918 | INFO | [pred] ridge#2: per-day mse days=19 p50=0.840866 p90=17.9276 p99=82.7798 max=92.2877
+2025-12-16 11:40:17,918 | INFO | [pred] lasso#1: n=597 R2_OS=0.06401 mse=5.0336 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.347 std=0.26 p1=-0.128 p99=0.823
+2025-12-16 11:40:17,918 | INFO | [pred] lasso#1: |err| q99=13.0801  tail_n=6/597  tail_share_SSE=52.75%
+2025-12-16 11:40:17,920 | INFO | [pred] lasso#1: per-day mse days=19 p50=0.780605 p90=18.0041 p99=82.187 max=91.7245
+2025-12-16 11:40:17,921 | INFO | [pred] lasso#2: n=597 R2_OS=0.06401 mse=5.03361 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.347 std=0.26 p1=-0.128 p99=0.823
+2025-12-16 11:40:17,921 | INFO | [pred] lasso#2: |err| q99=13.08  tail_n=6/597  tail_share_SSE=52.75%
+2025-12-16 11:40:17,923 | INFO | [pred] lasso#2: per-day mse days=19 p50=0.780719 p90=18.004 p99=82.1857 max=91.7231
+2025-12-16 11:40:17,923 | INFO | [pred] elasticnet#1: n=597 R2_OS=0.06408 mse=5.03322 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.342 std=0.258 p1=-0.129 p99=0.811
+2025-12-16 11:40:17,923 | INFO | [pred] elasticnet#1: |err| q99=13.0855  tail_n=6/597  tail_share_SSE=52.79%
+2025-12-16 11:40:17,925 | INFO | [pred] elasticnet#1: per-day mse days=19 p50=0.779571 p90=18.0161 p99=82.2472 max=91.7941
+2025-12-16 11:40:17,926 | INFO | [pred] elasticnet#2: n=597 R2_OS=0.06401 mse=5.03362 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.346 std=0.26 p1=-0.128 p99=0.82
+2025-12-16 11:40:17,926 | INFO | [pred] elasticnet#2: |err| q99=13.082  tail_n=6/597  tail_share_SSE=52.76%
+2025-12-16 11:40:17,928 | INFO | [pred] elasticnet#2: per-day mse days=19 p50=0.780954 p90=18.0074 p99=82.2066 max=91.7474
+2025-12-16 11:40:17,928 | INFO | [pred] pcr#1: n=597 R2_OS=0.03938 mse=5.16605 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.171 std=0.179 p1=-0.159 p99=0.562
+2025-12-16 11:40:17,929 | INFO | [pred] pcr#1: |err| q99=13.5016  tail_n=6/597  tail_share_SSE=53.16%
+2025-12-16 11:40:17,930 | INFO | [pred] pcr#1: per-day mse days=19 p50=0.89997 p90=18.7068 p99=86.7745 max=97.09
+2025-12-16 11:40:17,931 | INFO | [pred] pcr#2: n=597 R2_OS=0.03938 mse=5.16605 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.171 std=0.179 p1=-0.159 p99=0.562
+2025-12-16 11:40:17,931 | INFO | [pred] pcr#2: |err| q99=13.5016  tail_n=6/597  tail_share_SSE=53.16%
+2025-12-16 11:40:17,933 | INFO | [pred] pcr#2: per-day mse days=19 p50=0.89997 p90=18.7068 p99=86.7745 max=97.09
+2025-12-16 11:40:17,934 | INFO | [pred] pls#1: n=597 R2_OS=0.09289 mse=4.87827 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.716 std=0.491 p1=-0.178 p99=1.7
+2025-12-16 11:40:17,934 | INFO | [pred] pls#1: |err| q99=12.1241  tail_n=6/597  tail_share_SSE=48.31%
+2025-12-16 11:40:17,936 | INFO | [pred] pls#1: per-day mse days=19 p50=1.66789 p90=16.1471 p99=70.7966 max=78.6092
+2025-12-16 11:40:17,936 | INFO | [pred] pls#2: n=597 R2_OS=0.10450 mse=4.81582 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.526 std=0.65 p1=-0.626 p99=1.75
+2025-12-16 11:40:17,936 | INFO | [pred] pls#2: |err| q99=12.3956  tail_n=6/597  tail_share_SSE=49.51%
+2025-12-16 11:40:17,938 | INFO | [pred] pls#2: per-day mse days=19 p50=1.08698 p90=16.1511 p99=72.9862 max=81.0625
+2025-12-16 11:40:17,940 | INFO | [pred] L-En: n=597 R2_OS=0.07323 mse=4.98403 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.371 std=0.31 p1=-0.175 p99=0.964
+2025-12-16 11:40:17,940 | INFO | [pred] L-En: |err| q99=13.0072  tail_n=6/597  tail_share_SSE=52.50%
+2025-12-16 11:40:17,942 | INFO | [pred] L-En: per-day mse days=19 p50=0.861574 p90=17.706 p99=80.9996 max=90.3635
+2025-12-16 11:40:17,943 | INFO | [pred] ffn#1: n=597 R2_OS=0.02044 mse=5.26792 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.952 std=0.826 p1=-0.254 p99=2.76
+2025-12-16 11:40:17,944 | INFO | [pred] ffn#1: |err| q99=11.9767  tail_n=6/597  tail_share_SSE=43.29%
+2025-12-16 11:40:17,946 | INFO | [pred] ffn#1: per-day mse days=19 p50=2.55099 p90=15.131 p99=69.9843 max=77.3071
+2025-12-16 11:40:17,947 | INFO | [pred] ffn#2: n=597 R2_OS=0.02407 mse=5.24841 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.938 std=0.822 p1=-0.262 p99=2.74
+2025-12-16 11:40:17,947 | INFO | [pred] ffn#2: |err| q99=12.0003  tail_n=6/597  tail_share_SSE=43.54%
+2025-12-16 11:40:17,949 | INFO | [pred] ffn#2: per-day mse days=19 p50=2.53524 p90=15.1579 p99=70.1734 max=77.5276
+2025-12-16 11:40:17,972 | INFO | [pred] rf#1: n=597 R2_OS=0.10111 mse=4.8341 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.762 std=0.854 p1=-0.0713 p99=2.82
+2025-12-16 11:40:17,972 | INFO | [pred] rf#1: |err| q99=11.7329  tail_n=6/597  tail_share_SSE=45.70%
+2025-12-16 11:40:17,974 | INFO | [pred] rf#1: per-day mse days=19 p50=2.50595 p90=15.0387 p99=65.9607 max=72.4872
+2025-12-16 11:40:17,997 | INFO | [pred] rf#2: n=597 R2_OS=0.09983 mse=4.84094 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.724 std=0.778 p1=-0.0537 p99=2.54
+2025-12-16 11:40:17,997 | INFO | [pred] rf#2: |err| q99=12.1127  tail_n=6/597  tail_share_SSE=46.73%
+2025-12-16 11:40:17,999 | INFO | [pred] rf#2: per-day mse days=19 p50=1.90658 p90=15.0508 p99=69.5028 max=76.9823
+2025-12-16 11:40:18,000 | INFO | [pred] lgbm_gbdt#1: n=597 R2_OS=0.11050 mse=4.78358 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.552 std=0.522 p1=-0.0131 p99=1.6
+2025-12-16 11:40:18,000 | INFO | [pred] lgbm_gbdt#1: |err| q99=12.1353  tail_n=6/597  tail_share_SSE=50.56%
+2025-12-16 11:40:18,002 | INFO | [pred] lgbm_gbdt#1: per-day mse days=19 p50=1.44726 p90=16.2744 p99=72.9139 max=80.8858
+2025-12-16 11:40:18,003 | INFO | [pred] lgbm_gbdt#2: n=597 R2_OS=0.13520 mse=4.65073 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.588 std=0.663 p1=-0.0197 p99=2.55
+2025-12-16 11:40:18,003 | INFO | [pred] lgbm_gbdt#2: |err| q99=11.0787  tail_n=6/597  tail_share_SSE=49.04%
+2025-12-16 11:40:18,005 | INFO | [pred] lgbm_gbdt#2: per-day mse days=19 p50=2.2583 p90=15.9908 p99=62.7344 max=68.5504
+2025-12-16 11:40:18,007 | INFO | [pred] lgbm_dart#1: n=597 R2_OS=0.12203 mse=4.72156 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.534 std=0.569 p1=-0.0521 p99=2.05
+2025-12-16 11:40:18,007 | INFO | [pred] lgbm_dart#1: |err| q99=11.6252  tail_n=6/597  tail_share_SSE=50.40%
+2025-12-16 11:40:18,009 | INFO | [pred] lgbm_dart#1: per-day mse days=19 p50=2.14726 p90=16.5618 p99=66.8908 max=73.4964
+2025-12-16 11:40:18,010 | INFO | [pred] lgbm_dart#2: n=597 R2_OS=0.12949 mse=4.68147 mse0=5.37783 | y mean=0.416 std=2.28 | yhat mean=0.642 std=0.724 p1=-0.0611 p99=2.66
+2025-12-16 11:40:18,010 | INFO | [pred] lgbm_dart#2: |err| q99=10.976  tail_n=6/597  tail_share_SSE=47.80%
+2025-12-16 11:40:18,012 | INFO | [pred] lgbm_dart#2: per-day mse days=19 p50=2.30793 p90=15.7301 p99=61.7522 max=67.4612
+2025-12-16 11:40:33,911 | INFO | === Expanding step: train_to_2023-05__test_2023-06 ===
+2025-12-16 11:40:33,915 | INFO | [guardrails] transform=none
+2025-12-16 11:40:33,916 | INFO | [guardrails] winsor z: lower_q=0.0050 (-1.69905), upper_q=0.9950 (15.9481)
+2025-12-16 11:40:34,216 | INFO | Training linear: ['ridge', 'lasso', 'elasticnet', 'pcr', 'pls']
+2025-12-16 11:40:37,232 | INFO | [keep] ridge#1 score=0.06894 params={'max_iter': np.int64(10000), 'alpha': 92.28295957427436}
+2025-12-16 11:40:37,241 | INFO | [keep] ridge#2 score=0.06887 params={'max_iter': np.int64(10000), 'alpha': 86.26905220714896}
+2025-12-16 11:40:41,927 | INFO | [keep] lasso#1 score=0.07085 params={'max_iter': np.int64(10000), 'alpha': 0.003888186473153667}
+2025-12-16 11:40:41,971 | INFO | [keep] lasso#2 score=0.07080 params={'max_iter': np.int64(10000), 'alpha': 0.004232824558620119}
+2025-12-16 11:40:48,898 | INFO | [keep] elasticnet#1 score=0.07080 params={'max_iter': np.int64(10000), 'alpha': 0.004669226029558979, 'l1_ratio': 0.8621992092135881}
+2025-12-16 11:40:48,998 | INFO | [keep] elasticnet#2 score=0.07066 params={'max_iter': np.int64(10000), 'alpha': 0.006805908701019696, 'l1_ratio': 0.5694274771665351}
+2025-12-16 11:40:49,924 | INFO | [keep] pcr#1 score=0.02760 params={'pca__n_components': 6, 'ridge__alpha': 0.0001}
+2025-12-16 11:40:49,936 | INFO | [keep] pcr#2 score=0.02760 params={'pca__n_components': 6, 'ridge__alpha': 0.001}
+2025-12-16 11:40:50,088 | INFO | [keep] pls#1 score=0.07568 params={'n_components': 1}
+2025-12-16 11:40:50,099 | INFO | [keep] pls#2 score=0.03552 params={'n_components': 2}
+2025-12-16 11:40:50,099 | INFO | Training FFN: ['ffn']
+2025-12-16 12:24:58,162 | INFO | [keep] ffn#1 score=0.08682 params={'ffn__activation': np.str_('relu'), 'ffn__batch_size': np.int64(64), 'ffn__device': np.str_('auto'), 'ffn__hidden_width': np.int64(64), 'ffn__huber_delta': np.float64(1.0), 'ffn__learning_rate': np.float64(0.0001), 'ffn__loss': np.str_('mse'), 'ffn__max_epochs': np.int64(100), 'ffn__n_hidden_layers': np.int64(1), 'ffn__patience': np.int64(10), 'ffn__seed': np.int64(0), 'ffn__val_split': np.float64(0.1), 'ffn__dropout': 0.39200724658983155, 'ffn__weight_decay': 0.0054475948916969}
+2025-12-16 12:25:39,407 | INFO | [keep] ffn#2 score=0.08681 params={'ffn__activation': np.str_('relu'), 'ffn__batch_size': np.int64(64), 'ffn__device': np.str_('auto'), 'ffn__hidden_width': np.int64(64), 'ffn__huber_delta': np.float64(1.0), 'ffn__learning_rate': np.float64(0.0001), 'ffn__loss': np.str_('mse'), 'ffn__max_epochs': np.int64(100), 'ffn__n_hidden_layers': np.int64(1), 'ffn__patience': np.int64(10), 'ffn__seed': np.int64(0), 'ffn__val_split': np.float64(0.1), 'ffn__dropout': 0.38536300757525715, 'ffn__weight_decay': 0.0010628542549908017}
+2025-12-16 12:25:39,407 | INFO | Training trees: ['rf', 'lgbm_gbdt', 'lgbm_dart']
+2025-12-16 12:26:33,006 | INFO | [keep] rf#1 score=0.10026 params={'bootstrap': True, 'max_depth': 8, 'max_features': 'sqrt', 'max_samples': 0.6, 'min_samples_leaf': 50, 'n_estimators': 100}
+2025-12-16 12:26:33,703 | INFO | [keep] rf#2 score=0.10004 params={'bootstrap': True, 'max_depth': 8, 'max_features': 'sqrt', 'max_samples': 0.6, 'min_samples_leaf': 50, 'n_estimators': 300}
+2025-12-16 12:26:43,332 | INFO | [keep] lgbm_gbdt#1 score=0.09274 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.6), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(63), 'max_depth': np.int64(2), 'min_child_samples': np.int64(100), 'n_estimators': np.int64(200), 'num_leaves': np.int64(7), 'subsample': np.float64(0.6), 'verbosity': np.int64(-1), 'reg_alpha': 8.787999124848584, 'reg_lambda': 5.706724970481976} | n_estimators(refit)=51
+2025-12-16 12:26:43,371 | INFO | [keep] lgbm_gbdt#2 score=0.09163 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.6), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(127), 'max_depth': np.int64(2), 'min_child_samples': np.int64(100), 'n_estimators': np.int64(50), 'num_leaves': np.int64(31), 'subsample': np.float64(0.6), 'verbosity': np.int64(-1), 'reg_alpha': 1.0393953713074133, 'reg_lambda': 8.600399232968655} | n_estimators(refit)=47
+2025-12-16 12:27:11,953 | INFO | [keep] lgbm_dart#1 score=0.10155 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.8), 'drop_rate': np.float64(0.3), 'learning_rate': np.float64(0.1), 'max_bin': np.int64(63), 'max_depth': np.int64(4), 'max_drop': np.int64(20), 'min_child_samples': np.int64(100), 'min_child_weight': np.float64(0.1), 'min_split_gain': np.float64(0.05), 'n_estimators': np.int64(100), 'num_leaves': np.int64(31), 'skip_drop': np.float64(0.5), 'subsample': np.float64(0.8), 'verbosity': np.int64(-1), 'reg_alpha': 13.201261326847794, 'reg_lambda': 8.883879772755321}
+2025-12-16 12:27:12,273 | INFO | [keep] lgbm_dart#2 score=0.09965 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.6), 'drop_rate': np.float64(0.5), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(127), 'max_depth': np.int64(4), 'max_drop': np.int64(20), 'min_child_samples': np.int64(200), 'min_child_weight': np.float64(0.01), 'min_split_gain': np.float64(0.1), 'n_estimators': np.int64(200), 'num_leaves': np.int64(7), 'skip_drop': np.float64(0.3), 'subsample': np.float64(0.6), 'verbosity': np.int64(-1), 'reg_alpha': 22.0187874232906, 'reg_lambda': 0.4311234968566895}
+2025-12-16 12:27:12,273 | INFO | [pred] ridge#1: n=513 R2_OS=0.07143 mse=7.19313 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.164 std=0.336 p1=-0.539 p99=0.829
+2025-12-16 12:27:12,273 | INFO | [pred] ridge#1: |err| q99=14.8441  tail_n=6/513  tail_share_SSE=54.16%
+2025-12-16 12:27:12,276 | INFO | [pred] ridge#1: per-day mse days=20 p50=1.05231 p90=24.4343 p99=28.4984 max=29.2187
+2025-12-16 12:27:12,276 | INFO | [pred] ridge#2: n=513 R2_OS=0.07151 mse=7.19248 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.164 std=0.337 p1=-0.541 p99=0.835
+2025-12-16 12:27:12,276 | INFO | [pred] ridge#2: |err| q99=14.843  tail_n=6/513  tail_share_SSE=54.16%
+2025-12-16 12:27:12,278 | INFO | [pred] ridge#2: per-day mse days=20 p50=1.05356 p90=24.4349 p99=28.4993 max=29.2206
+2025-12-16 12:27:12,279 | INFO | [pred] lasso#1: n=513 R2_OS=0.06649 mse=7.23137 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.163 std=0.292 p1=-0.505 p99=0.73
+2025-12-16 12:27:12,279 | INFO | [pred] lasso#1: |err| q99=14.865  tail_n=6/513  tail_share_SSE=54.14%
+2025-12-16 12:27:12,281 | INFO | [pred] lasso#1: per-day mse days=20 p50=1.02426 p90=24.4756 p99=28.4823 max=29.1487
+2025-12-16 12:27:12,281 | INFO | [pred] lasso#2: n=513 R2_OS=0.06611 mse=7.23431 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.164 std=0.288 p1=-0.493 p99=0.729
+2025-12-16 12:27:12,281 | INFO | [pred] lasso#2: |err| q99=14.8676  tail_n=6/513  tail_share_SSE=54.14%
+2025-12-16 12:27:12,283 | INFO | [pred] lasso#2: per-day mse days=20 p50=1.02199 p90=24.4674 p99=28.4818 max=29.1445
+2025-12-16 12:27:12,283 | INFO | [pred] elasticnet#1: n=513 R2_OS=0.06624 mse=7.2333 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.164 std=0.29 p1=-0.499 p99=0.729
+2025-12-16 12:27:12,284 | INFO | [pred] elasticnet#1: |err| q99=14.8673  tail_n=6/513  tail_share_SSE=54.14%
+2025-12-16 12:27:12,285 | INFO | [pred] elasticnet#1: per-day mse days=20 p50=1.02278 p90=24.4721 p99=28.483 max=29.1474
+2025-12-16 12:27:12,286 | INFO | [pred] elasticnet#2: n=513 R2_OS=0.06603 mse=7.23499 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.164 std=0.289 p1=-0.496 p99=0.729
+2025-12-16 12:27:12,286 | INFO | [pred] elasticnet#2: |err| q99=14.8706  tail_n=6/513  tail_share_SSE=54.14%
+2025-12-16 12:27:12,288 | INFO | [pred] elasticnet#2: per-day mse days=20 p50=1.02165 p90=24.4741 p99=28.4852 max=29.1488
+2025-12-16 12:27:12,289 | INFO | [pred] pcr#1: n=513 R2_OS=0.04509 mse=7.3972 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.15 std=0.178 p1=-0.197 p99=0.587
+2025-12-16 12:27:12,289 | INFO | [pred] pcr#1: |err| q99=14.8958  tail_n=6/513  tail_share_SSE=54.07%
+2025-12-16 12:27:12,291 | INFO | [pred] pcr#1: per-day mse days=20 p50=1.12912 p90=26.0584 p99=29.5356 max=30.303
+2025-12-16 12:27:12,291 | INFO | [pred] pcr#2: n=513 R2_OS=0.04509 mse=7.3972 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.15 std=0.178 p1=-0.197 p99=0.587
+2025-12-16 12:27:12,291 | INFO | [pred] pcr#2: |err| q99=14.8958  tail_n=6/513  tail_share_SSE=54.07%
+2025-12-16 12:27:12,293 | INFO | [pred] pcr#2: per-day mse days=20 p50=1.12912 p90=26.0584 p99=29.5356 max=30.303
+2025-12-16 12:27:12,294 | INFO | [pred] pls#1: n=513 R2_OS=0.11238 mse=6.87595 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.706 std=0.434 p1=-0.0837 p99=1.62
+2025-12-16 12:27:12,294 | INFO | [pred] pls#1: |err| q99=13.961  tail_n=6/513  tail_share_SSE=52.11%
+2025-12-16 12:27:12,296 | INFO | [pred] pls#1: per-day mse days=20 p50=2.66475 p90=21.2133 p99=27.3729 max=28.2694
+2025-12-16 12:27:12,296 | INFO | [pred] pls#2: n=513 R2_OS=0.12961 mse=6.74246 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.565 std=0.584 p1=-0.512 p99=1.74
+2025-12-16 12:27:12,296 | INFO | [pred] pls#2: |err| q99=13.7938  tail_n=6/513  tail_share_SSE=52.71%
+2025-12-16 12:27:12,298 | INFO | [pred] pls#2: per-day mse days=20 p50=2.41255 p90=21.3156 p99=27.3199 max=28.3902
+2025-12-16 12:27:12,299 | INFO | [pred] L-En: n=513 R2_OS=0.08205 mse=7.11088 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.255 std=0.301 p1=-0.274 p99=0.838
+2025-12-16 12:27:12,299 | INFO | [pred] L-En: |err| q99=14.6871  tail_n=6/513  tail_share_SSE=54.25%
+2025-12-16 12:27:12,301 | INFO | [pred] L-En: per-day mse days=20 p50=1.06248 p90=24.0548 p99=28.3747 max=29.142
+2025-12-16 12:27:12,303 | INFO | [pred] ffn#1: n=513 R2_OS=0.12967 mse=6.74196 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.71 std=0.87 p1=-0.698 p99=2.75
+2025-12-16 12:27:12,303 | INFO | [pred] ffn#1: |err| q99=13.0477  tail_n=6/513  tail_share_SSE=48.88%
+2025-12-16 12:27:12,305 | INFO | [pred] ffn#1: per-day mse days=20 p50=3.10755 p90=18.9443 p99=26.5549 max=27.765
+2025-12-16 12:27:12,307 | INFO | [pred] ffn#2: n=513 R2_OS=0.12883 mse=6.74851 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.714 std=0.875 p1=-0.711 p99=2.78
+2025-12-16 12:27:12,307 | INFO | [pred] ffn#2: |err| q99=13.0443  tail_n=6/513  tail_share_SSE=48.79%
+2025-12-16 12:27:12,309 | INFO | [pred] ffn#2: per-day mse days=20 p50=3.11792 p90=18.8841 p99=26.572 max=27.79
+2025-12-16 12:27:12,321 | INFO | [pred] rf#1: n=513 R2_OS=0.16641 mse=6.45737 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.659 std=0.777 p1=-0.139 p99=2.45
+2025-12-16 12:27:12,321 | INFO | [pred] rf#1: |err| q99=13.626  tail_n=6/513  tail_share_SSE=51.20%
+2025-12-16 12:27:12,323 | INFO | [pred] rf#1: per-day mse days=20 p50=1.8376 p90=19.243 p99=25.7855 max=26.7601
+2025-12-16 12:27:12,356 | INFO | [pred] rf#2: n=513 R2_OS=0.16676 mse=6.45465 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.683 std=0.774 p1=-0.132 p99=2.39
+2025-12-16 12:27:12,356 | INFO | [pred] rf#2: |err| q99=13.5941  tail_n=6/513  tail_share_SSE=51.13%
+2025-12-16 12:27:12,358 | INFO | [pred] rf#2: per-day mse days=20 p50=1.75765 p90=19.0028 p99=25.8319 max=26.8207
+2025-12-16 12:27:12,359 | INFO | [pred] lgbm_gbdt#1: n=513 R2_OS=0.13387 mse=6.70946 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.508 std=0.546 p1=-0.105 p99=1.54
+2025-12-16 12:27:12,359 | INFO | [pred] lgbm_gbdt#1: |err| q99=14.0318  tail_n=6/513  tail_share_SSE=53.03%
+2025-12-16 12:27:12,361 | INFO | [pred] lgbm_gbdt#1: per-day mse days=20 p50=1.477 p90=21.097 p99=26.7631 max=27.5851
+2025-12-16 12:27:12,362 | INFO | [pred] lgbm_gbdt#2: n=513 R2_OS=0.14022 mse=6.66023 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.501 std=0.535 p1=-0.0731 p99=1.57
+2025-12-16 12:27:12,362 | INFO | [pred] lgbm_gbdt#2: |err| q99=13.9027  tail_n=6/513  tail_share_SSE=52.97%
+2025-12-16 12:27:12,364 | INFO | [pred] lgbm_gbdt#2: per-day mse days=20 p50=1.36857 p90=21.2208 p99=26.6526 max=27.5335
+2025-12-16 12:27:12,366 | INFO | [pred] lgbm_dart#1: n=513 R2_OS=0.14695 mse=6.60814 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.564 std=0.658 p1=-0.0782 p99=2.39
+2025-12-16 12:27:12,366 | INFO | [pred] lgbm_dart#1: |err| q99=13.9254  tail_n=6/513  tail_share_SSE=50.59%
+2025-12-16 12:27:12,368 | INFO | [pred] lgbm_dart#1: per-day mse days=20 p50=1.48048 p90=20.9545 p99=25.9274 max=26.7557
+2025-12-16 12:27:12,369 | INFO | [pred] lgbm_dart#2: n=513 R2_OS=0.12778 mse=6.75664 mse0=7.74646 | y mean=0.581 std=2.72 | yhat mean=0.48 std=0.525 p1=-0.0956 p99=1.78
+2025-12-16 12:27:12,369 | INFO | [pred] lgbm_dart#2: |err| q99=14.2069  tail_n=6/513  tail_share_SSE=52.40%
+2025-12-16 12:27:12,371 | INFO | [pred] lgbm_dart#2: per-day mse days=20 p50=1.2964 p90=22.3576 p99=26.7314 max=27.5123
+2025-12-16 12:27:26,134 | INFO | === Expanding step: train_to_2023-06__test_2023-07 ===
+2025-12-16 12:27:26,138 | INFO | [guardrails] transform=none
+2025-12-16 12:27:26,138 | INFO | [guardrails] winsor z: lower_q=0.0050 (-1.69817), upper_q=0.9950 (15.9917)
+2025-12-16 12:27:26,433 | INFO | Training linear: ['ridge', 'lasso', 'elasticnet', 'pcr', 'pls']
+2025-12-16 12:27:29,211 | INFO | [keep] ridge#1 score=0.06889 params={'max_iter': np.int64(10000), 'alpha': 92.28295957427436}
+2025-12-16 12:27:29,220 | INFO | [keep] ridge#2 score=0.06883 params={'max_iter': np.int64(10000), 'alpha': 86.26905220714896}
+2025-12-16 12:27:34,036 | INFO | [keep] lasso#1 score=0.07005 params={'max_iter': np.int64(10000), 'alpha': 0.005575186893674789}
+2025-12-16 12:27:34,070 | INFO | [keep] lasso#2 score=0.07003 params={'max_iter': np.int64(10000), 'alpha': 0.005410990556767876}
+2025-12-16 12:27:41,368 | INFO | [keep] elasticnet#1 score=0.06993 params={'max_iter': np.int64(10000), 'alpha': 0.006616466294247083, 'l1_ratio': 0.738437467130051}
+2025-12-16 12:27:41,487 | INFO | [keep] elasticnet#2 score=0.06972 params={'max_iter': np.int64(10000), 'alpha': 0.006218230782016854, 'l1_ratio': 0.7193869515473733}
+2025-12-16 12:27:42,368 | INFO | [keep] pcr#1 score=0.03371 params={'pca__n_components': 6, 'ridge__alpha': 0.0001}
+2025-12-16 12:27:42,380 | INFO | [keep] pcr#2 score=0.03371 params={'pca__n_components': 6, 'ridge__alpha': 0.001}
+2025-12-16 12:27:42,530 | INFO | [keep] pls#1 score=0.08009 params={'n_components': 1}
+2025-12-16 12:27:42,540 | INFO | [keep] pls#2 score=0.03996 params={'n_components': 2}
+2025-12-16 12:27:42,541 | INFO | Training FFN: ['ffn']
+2025-12-16 13:16:59,087 | INFO | [keep] ffn#1 score=0.08884 params={'ffn__activation': np.str_('relu'), 'ffn__batch_size': np.int64(64), 'ffn__device': np.str_('auto'), 'ffn__hidden_width': np.int64(64), 'ffn__huber_delta': np.float64(1.0), 'ffn__learning_rate': np.float64(0.0001), 'ffn__loss': np.str_('mse'), 'ffn__max_epochs': np.int64(100), 'ffn__n_hidden_layers': np.int64(1), 'ffn__patience': np.int64(10), 'ffn__seed': np.int64(0), 'ffn__val_split': np.float64(0.1), 'ffn__dropout': 0.39200724658983155, 'ffn__weight_decay': 0.0054475948916969}
+2025-12-16 13:17:40,358 | INFO | [keep] ffn#2 score=0.08868 params={'ffn__activation': np.str_('relu'), 'ffn__batch_size': np.int64(64), 'ffn__device': np.str_('auto'), 'ffn__hidden_width': np.int64(64), 'ffn__huber_delta': np.float64(1.0), 'ffn__learning_rate': np.float64(0.0001), 'ffn__loss': np.str_('mse'), 'ffn__max_epochs': np.int64(100), 'ffn__n_hidden_layers': np.int64(1), 'ffn__patience': np.int64(10), 'ffn__seed': np.int64(0), 'ffn__val_split': np.float64(0.1), 'ffn__dropout': 0.38536300757525715, 'ffn__weight_decay': 0.0010628542549908017}
+2025-12-16 13:17:40,358 | INFO | Training trees: ['rf', 'lgbm_gbdt', 'lgbm_dart']
+2025-12-16 13:18:34,925 | INFO | [keep] rf#1 score=0.10237 params={'bootstrap': True, 'max_depth': 8, 'max_features': 'sqrt', 'max_samples': 0.6, 'min_samples_leaf': 50, 'n_estimators': 200}
+2025-12-16 13:18:35,634 | INFO | [keep] rf#2 score=0.10208 params={'bootstrap': True, 'max_depth': 8, 'max_features': 'sqrt', 'max_samples': 0.6, 'min_samples_leaf': 50, 'n_estimators': 300}
+2025-12-16 13:18:44,591 | INFO | [keep] lgbm_gbdt#1 score=0.07990 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.8), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(127), 'max_depth': np.int64(2), 'min_child_samples': np.int64(100), 'n_estimators': np.int64(100), 'num_leaves': np.int64(31), 'subsample': np.float64(0.8), 'verbosity': np.int64(-1), 'reg_alpha': 0.1560004162305882, 'reg_lambda': 9.329677171778526} | n_estimators(refit)=25
+2025-12-16 13:18:44,616 | INFO | [keep] lgbm_gbdt#2 score=0.07348 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.8), 'learning_rate': np.float64(0.1), 'max_bin': np.int64(63), 'max_depth': np.int64(2), 'min_child_samples': np.int64(100), 'n_estimators': np.int64(100), 'num_leaves': np.int64(15), 'subsample': np.float64(0.6), 'verbosity': np.int64(-1), 'reg_alpha': 0.5202534276752855, 'reg_lambda': 0.5894878213174287} | n_estimators(refit)=13
+2025-12-16 13:19:13,261 | INFO | [keep] lgbm_dart#1 score=0.08573 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.6), 'drop_rate': np.float64(0.5), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(127), 'max_depth': np.int64(4), 'max_drop': np.int64(20), 'min_child_samples': np.int64(200), 'min_child_weight': np.float64(0.01), 'min_split_gain': np.float64(0.1), 'n_estimators': np.int64(200), 'num_leaves': np.int64(7), 'skip_drop': np.float64(0.3), 'subsample': np.float64(0.6), 'verbosity': np.int64(-1), 'reg_alpha': 22.0187874232906, 'reg_lambda': 0.4311234968566895}
+2025-12-16 13:19:13,367 | INFO | [keep] lgbm_dart#2 score=0.08488 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.8), 'drop_rate': np.float64(0.5), 'learning_rate': np.float64(0.1), 'max_bin': np.int64(127), 'max_depth': np.int64(2), 'max_drop': np.int64(20), 'min_child_samples': np.int64(100), 'min_child_weight': np.float64(0.1), 'min_split_gain': np.float64(0.1), 'n_estimators': np.int64(100), 'num_leaves': np.int64(31), 'skip_drop': np.float64(0.5), 'subsample': np.float64(0.8), 'verbosity': np.int64(-1), 'reg_alpha': 0.42770830499620704, 'reg_lambda': 0.24365700014641997}
+2025-12-16 13:19:13,367 | INFO | [pred] ridge#1: n=432 R2_OS=0.05195 mse=10.2184 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.112 std=0.327 p1=-0.425 p99=0.975
+2025-12-16 13:19:13,367 | INFO | [pred] ridge#1: |err| q99=18.108  tail_n=5/432  tail_share_SSE=48.13%
+2025-12-16 13:19:13,369 | INFO | [pred] ridge#1: per-day mse days=19 p50=0.942568 p90=21.7295 p99=66.1352 max=72.0916
+2025-12-16 13:19:13,370 | INFO | [pred] ridge#2: n=432 R2_OS=0.05202 mse=10.2177 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.112 std=0.328 p1=-0.426 p99=0.972
+2025-12-16 13:19:13,370 | INFO | [pred] ridge#2: |err| q99=18.1063  tail_n=5/432  tail_share_SSE=48.13%
+2025-12-16 13:19:13,372 | INFO | [pred] ridge#2: per-day mse days=19 p50=0.942256 p90=21.7256 p99=66.1335 max=72.0899
+2025-12-16 13:19:13,372 | INFO | [pred] lasso#1: n=432 R2_OS=0.04613 mse=10.2811 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.14 std=0.268 p1=-0.337 p99=0.899
+2025-12-16 13:19:13,372 | INFO | [pred] lasso#1: |err| q99=18.2252  tail_n=5/432  tail_share_SSE=48.05%
+2025-12-16 13:19:13,374 | INFO | [pred] lasso#1: per-day mse days=19 p50=0.952243 p90=22.0278 p99=66.2132 max=72.1517
+2025-12-16 13:19:13,374 | INFO | [pred] lasso#2: n=432 R2_OS=0.04633 mse=10.279 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.139 std=0.27 p1=-0.339 p99=0.908
+2025-12-16 13:19:13,375 | INFO | [pred] lasso#2: |err| q99=18.2217  tail_n=5/432  tail_share_SSE=48.05%
+2025-12-16 13:19:13,376 | INFO | [pred] lasso#2: per-day mse days=19 p50=0.951511 p90=22.0179 p99=66.2131 max=72.1529
+2025-12-16 13:19:13,377 | INFO | [pred] elasticnet#1: n=432 R2_OS=0.04667 mse=10.2753 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.136 std=0.274 p1=-0.345 p99=0.929
+2025-12-16 13:19:13,377 | INFO | [pred] elasticnet#1: |err| q99=18.2143  tail_n=5/432  tail_share_SSE=48.05%
+2025-12-16 13:19:13,379 | INFO | [pred] elasticnet#1: per-day mse days=19 p50=0.949923 p90=21.9967 p99=66.2232 max=72.1671
+2025-12-16 13:19:13,379 | INFO | [pred] elasticnet#2: n=432 R2_OS=0.04701 mse=10.2717 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.133 std=0.279 p1=-0.35 p99=0.952
+2025-12-16 13:19:13,379 | INFO | [pred] elasticnet#2: |err| q99=18.2068  tail_n=5/432  tail_share_SSE=48.05%
+2025-12-16 13:19:13,381 | INFO | [pred] elasticnet#2: per-day mse days=19 p50=0.948495 p90=21.9753 p99=66.2325 max=72.1809
+2025-12-16 13:19:13,382 | INFO | [pred] pcr#1: n=432 R2_OS=0.02980 mse=10.4571 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.0857 std=0.161 p1=-0.214 p99=0.463
+2025-12-16 13:19:13,382 | INFO | [pred] pcr#1: |err| q99=18.364  tail_n=5/432  tail_share_SSE=47.91%
+2025-12-16 13:19:13,383 | INFO | [pred] pcr#1: per-day mse days=19 p50=0.913409 p90=22.5495 p99=67.2862 max=73.2477
+2025-12-16 13:19:13,384 | INFO | [pred] pcr#2: n=432 R2_OS=0.02980 mse=10.4571 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.0857 std=0.161 p1=-0.214 p99=0.463
+2025-12-16 13:19:13,384 | INFO | [pred] pcr#2: |err| q99=18.364  tail_n=5/432  tail_share_SSE=47.91%
+2025-12-16 13:19:13,386 | INFO | [pred] pcr#2: per-day mse days=19 p50=0.913409 p90=22.5495 p99=67.2862 max=73.2477
+2025-12-16 13:19:13,387 | INFO | [pred] pls#1: n=432 R2_OS=0.09066 mse=9.80115 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.582 std=0.484 p1=-0.297 p99=1.57
+2025-12-16 13:19:13,387 | INFO | [pred] pls#1: |err| q99=17.5293  tail_n=5/432  tail_share_SSE=47.28%
+2025-12-16 13:19:13,388 | INFO | [pred] pls#1: per-day mse days=19 p50=1.60377 p90=20.3233 p99=60.7323 max=65.9178
+2025-12-16 13:19:13,389 | INFO | [pred] pls#2: n=432 R2_OS=0.09947 mse=9.70623 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.373 std=0.592 p1=-0.606 p99=1.6
+2025-12-16 13:19:13,389 | INFO | [pred] pls#2: |err| q99=17.4947  tail_n=5/432  tail_share_SSE=47.90%
+2025-12-16 13:19:13,391 | INFO | [pred] pls#2: per-day mse days=19 p50=1.31262 p90=20.2194 p99=61.5106 max=66.8174
+2025-12-16 13:19:13,392 | INFO | [pred] L-En: n=432 R2_OS=0.05888 mse=10.1437 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.19 std=0.292 p1=-0.265 p99=0.814
+2025-12-16 13:19:13,392 | INFO | [pred] L-En: |err| q99=18.0834  tail_n=5/432  tail_share_SSE=48.19%
+2025-12-16 13:19:13,394 | INFO | [pred] L-En: per-day mse days=19 p50=0.949801 p90=21.6755 p99=65.3327 max=71.1369
+2025-12-16 13:19:13,396 | INFO | [pred] ffn#1: n=432 R2_OS=0.12271 mse=9.45571 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.442 std=0.663 p1=-0.364 p99=2.05
+2025-12-16 13:19:13,396 | INFO | [pred] ffn#1: |err| q99=17.3252  tail_n=5/432  tail_share_SSE=48.24%
+2025-12-16 13:19:13,398 | INFO | [pred] ffn#1: per-day mse days=19 p50=2.02728 p90=19.7519 p99=58.3174 max=63.238
+2025-12-16 13:19:13,399 | INFO | [pred] ffn#2: n=432 R2_OS=0.12326 mse=9.44981 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.455 std=0.677 p1=-0.377 p99=2.04
+2025-12-16 13:19:13,399 | INFO | [pred] ffn#2: |err| q99=17.321  tail_n=5/432  tail_share_SSE=48.11%
+2025-12-16 13:19:13,401 | INFO | [pred] ffn#2: per-day mse days=19 p50=2.01502 p90=19.7275 p99=58.0562 max=62.9431
+2025-12-16 13:19:13,424 | INFO | [pred] rf#1: n=432 R2_OS=0.12996 mse=9.37758 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.466 std=0.7 p1=-0.106 p99=2.47
+2025-12-16 13:19:13,424 | INFO | [pred] rf#1: |err| q99=16.7542  tail_n=5/432  tail_share_SSE=47.16%
+2025-12-16 13:19:13,426 | INFO | [pred] rf#1: per-day mse days=19 p50=1.89065 p90=18.4344 p99=59.2351 max=64.3943
+2025-12-16 13:19:13,448 | INFO | [pred] rf#2: n=432 R2_OS=0.13211 mse=9.35446 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.473 std=0.696 p1=-0.0994 p99=2.4
+2025-12-16 13:19:13,449 | INFO | [pred] rf#2: |err| q99=16.7517  tail_n=5/432  tail_share_SSE=47.08%
+2025-12-16 13:19:13,451 | INFO | [pred] rf#2: per-day mse days=19 p50=1.92818 p90=18.4332 p99=58.8017 max=63.882
+2025-12-16 13:19:13,451 | INFO | [pred] lgbm_gbdt#1: n=432 R2_OS=0.07609 mse=9.95826 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.278 std=0.413 p1=-0.0343 p99=1.73
+2025-12-16 13:19:13,452 | INFO | [pred] lgbm_gbdt#1: |err| q99=17.8415  tail_n=5/432  tail_share_SSE=47.95%
+2025-12-16 13:19:13,453 | INFO | [pred] lgbm_gbdt#1: per-day mse days=19 p50=1.39121 p90=20.9244 p99=63.2331 max=68.7132
+2025-12-16 13:19:13,454 | INFO | [pred] lgbm_gbdt#2: n=432 R2_OS=0.08035 mse=9.91229 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.297 std=0.421 p1=-0.214 p99=1.75
+2025-12-16 13:19:13,454 | INFO | [pred] lgbm_gbdt#2: |err| q99=17.7465  tail_n=5/432  tail_share_SSE=48.08%
+2025-12-16 13:19:13,456 | INFO | [pred] lgbm_gbdt#2: per-day mse days=19 p50=1.24096 p90=20.7963 p99=63.0367 max=68.4862
+2025-12-16 13:19:13,457 | INFO | [pred] lgbm_dart#1: n=432 R2_OS=0.10053 mse=9.69475 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.374 std=0.46 p1=-0.0509 p99=1.4
+2025-12-16 13:19:13,457 | INFO | [pred] lgbm_dart#1: |err| q99=17.5842  tail_n=5/432  tail_share_SSE=47.92%
+2025-12-16 13:19:13,459 | INFO | [pred] lgbm_dart#1: per-day mse days=19 p50=1.55305 p90=20.0582 p99=60.9619 max=66.1561
+2025-12-16 13:19:13,460 | INFO | [pred] lgbm_dart#2: n=432 R2_OS=0.10997 mse=9.59307 mse0=10.7783 | y mean=0.678 std=3.22 | yhat mean=0.414 std=0.6 p1=-0.091 p99=2.12
+2025-12-16 13:19:13,460 | INFO | [pred] lgbm_dart#2: |err| q99=17.1948  tail_n=5/432  tail_share_SSE=47.74%
+2025-12-16 13:19:13,462 | INFO | [pred] lgbm_dart#2: per-day mse days=19 p50=1.02598 p90=19.5595 p99=60.0328 max=65.041
+2025-12-16 13:19:25,485 | INFO | === Expanding step: train_to_2023-07__test_2023-08 ===
+2025-12-16 13:19:25,490 | INFO | [guardrails] transform=none
+2025-12-16 13:19:25,490 | INFO | [guardrails] winsor z: lower_q=0.0050 (-1.6872), upper_q=0.9950 (15.9524)
+2025-12-16 13:19:25,793 | INFO | Training linear: ['ridge', 'lasso', 'elasticnet', 'pcr', 'pls']
+2025-12-16 13:19:28,702 | INFO | [keep] ridge#1 score=0.07129 params={'max_iter': np.int64(10000), 'alpha': 92.28295957427436}
+2025-12-16 13:19:28,711 | INFO | [keep] ridge#2 score=0.07103 params={'max_iter': np.int64(10000), 'alpha': 86.26905220714896}
+2025-12-16 13:19:33,650 | INFO | [keep] lasso#1 score=0.07257 params={'max_iter': np.int64(10000), 'alpha': 0.007053763390632225}
+2025-12-16 13:19:33,669 | INFO | [keep] lasso#2 score=0.07256 params={'max_iter': np.int64(10000), 'alpha': 0.007382751981499335}
+2025-12-16 13:19:40,833 | INFO | [keep] elasticnet#1 score=0.07251 params={'max_iter': np.int64(10000), 'alpha': 0.011981845126013869, 'l1_ratio': 0.4496255630394732}
+2025-12-16 13:19:40,886 | INFO | [keep] elasticnet#2 score=0.07248 params={'max_iter': np.int64(10000), 'alpha': 0.01565536460836165, 'l1_ratio': 0.2678749991800977}
+2025-12-16 13:19:41,651 | INFO | [keep] pcr#1 score=0.03883 params={'pca__n_components': 6, 'ridge__alpha': 0.0001}
+2025-12-16 13:19:41,663 | INFO | [keep] pcr#2 score=0.03883 params={'pca__n_components': 6, 'ridge__alpha': 0.001}
+2025-12-16 13:19:41,814 | INFO | [keep] pls#1 score=0.08476 params={'n_components': 1}
+2025-12-16 13:19:41,825 | INFO | [keep] pls#2 score=0.06177 params={'n_components': 3}
+2025-12-16 13:19:41,825 | INFO | Training FFN: ['ffn']
+2025-12-16 14:04:22,443 | INFO | [keep] ffn#1 score=0.09890 params={'ffn__activation': np.str_('relu'), 'ffn__batch_size': np.int64(64), 'ffn__device': np.str_('auto'), 'ffn__hidden_width': np.int64(64), 'ffn__huber_delta': np.float64(1.0), 'ffn__learning_rate': np.float64(0.0001), 'ffn__loss': np.str_('mse'), 'ffn__max_epochs': np.int64(100), 'ffn__n_hidden_layers': np.int64(1), 'ffn__patience': np.int64(10), 'ffn__seed': np.int64(0), 'ffn__val_split': np.float64(0.1), 'ffn__dropout': 0.38536300757525715, 'ffn__weight_decay': 0.0010628542549908017}
+2025-12-16 14:04:57,937 | INFO | [keep] ffn#2 score=0.09870 params={'ffn__activation': np.str_('relu'), 'ffn__batch_size': np.int64(64), 'ffn__device': np.str_('auto'), 'ffn__hidden_width': np.int64(64), 'ffn__huber_delta': np.float64(1.0), 'ffn__learning_rate': np.float64(0.0001), 'ffn__loss': np.str_('mse'), 'ffn__max_epochs': np.int64(100), 'ffn__n_hidden_layers': np.int64(1), 'ffn__patience': np.int64(10), 'ffn__seed': np.int64(0), 'ffn__val_split': np.float64(0.1), 'ffn__dropout': 0.39200724658983155, 'ffn__weight_decay': 0.0054475948916969}
+2025-12-16 14:04:57,937 | INFO | Training trees: ['rf', 'lgbm_gbdt', 'lgbm_dart']
+2025-12-16 14:05:52,266 | INFO | [keep] rf#1 score=0.11239 params={'bootstrap': True, 'max_depth': 8, 'max_features': 'sqrt', 'max_samples': 0.6, 'min_samples_leaf': 20, 'n_estimators': 200}
+2025-12-16 14:05:52,752 | INFO | [keep] rf#2 score=0.11109 params={'bootstrap': True, 'max_depth': 8, 'max_features': 'sqrt', 'max_samples': 0.6, 'min_samples_leaf': 50, 'n_estimators': 200}
+2025-12-16 14:06:01,875 | INFO | [keep] lgbm_gbdt#1 score=0.08277 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.8), 'learning_rate': np.float64(0.1), 'max_bin': np.int64(63), 'max_depth': np.int64(6), 'min_child_samples': np.int64(200), 'n_estimators': np.int64(50), 'num_leaves': np.int64(15), 'subsample': np.float64(0.8), 'verbosity': np.int64(-1), 'reg_alpha': 0.2028873990857084, 'reg_lambda': 0.7096027254364279} | n_estimators(refit)=8
+2025-12-16 14:06:01,906 | INFO | [keep] lgbm_gbdt#2 score=0.08189 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.8), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(127), 'max_depth': np.int64(2), 'min_child_samples': np.int64(100), 'n_estimators': np.int64(100), 'num_leaves': np.int64(31), 'subsample': np.float64(0.8), 'verbosity': np.int64(-1), 'reg_alpha': 0.1560004162305882, 'reg_lambda': 9.329677171778526} | n_estimators(refit)=25
+2025-12-16 14:06:30,473 | INFO | [keep] lgbm_dart#1 score=0.10683 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.8), 'drop_rate': np.float64(0.2), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(63), 'max_depth': np.int64(6), 'max_drop': np.int64(10), 'min_child_samples': np.int64(200), 'min_child_weight': np.float64(0.1), 'min_split_gain': np.float64(0.1), 'n_estimators': np.int64(100), 'num_leaves': np.int64(31), 'skip_drop': np.float64(0.5), 'subsample': np.float64(0.6), 'verbosity': np.int64(-1), 'reg_alpha': 0.2719839508265554, 'reg_lambda': 2.9118489461447954}
+2025-12-16 14:06:30,766 | INFO | [keep] lgbm_dart#2 score=0.09606 params={'bagging_freq': np.int64(1), 'colsample_bytree': np.float64(0.8), 'drop_rate': np.float64(0.5), 'learning_rate': np.float64(0.05), 'max_bin': np.int64(63), 'max_depth': np.int64(6), 'max_drop': np.int64(10), 'min_child_samples': np.int64(200), 'min_child_weight': np.float64(0.01), 'min_split_gain': np.float64(0.1), 'n_estimators': np.int64(200), 'num_leaves': np.int64(31), 'skip_drop': np.float64(0.5), 'subsample': np.float64(0.6), 'verbosity': np.int64(-1), 'reg_alpha': 14.084210996912105, 'reg_lambda': 0.12056103129408201}
+2025-12-16 14:06:30,766 | INFO | [pred] ridge#1: n=396 R2_OS=0.08918 mse=4.93309 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.126 std=0.35 p1=-0.42 p99=1.02
+2025-12-16 14:06:30,767 | INFO | [pred] ridge#1: |err| q99=10.7868  tail_n=4/396  tail_share_SSE=58.30%
+2025-12-16 14:06:30,769 | INFO | [pred] ridge#1: per-day mse days=20 p50=1.13123 p90=12.7479 p99=19.9635 max=21.5468
+2025-12-16 14:06:30,769 | INFO | [pred] ridge#2: n=396 R2_OS=0.08921 mse=4.93294 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.125 std=0.352 p1=-0.422 p99=1.03
+2025-12-16 14:06:30,769 | INFO | [pred] ridge#2: |err| q99=10.7811  tail_n=4/396  tail_share_SSE=58.30%
+2025-12-16 14:06:30,771 | INFO | [pred] ridge#2: per-day mse days=20 p50=1.13905 p90=12.7481 p99=19.956 max=21.5375
+2025-12-16 14:06:30,771 | INFO | [pred] lasso#1: n=396 R2_OS=0.08084 mse=4.97825 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.167 std=0.254 p1=-0.27 p99=0.771
+2025-12-16 14:06:30,772 | INFO | [pred] lasso#1: |err| q99=11.1266  tail_n=4/396  tail_share_SSE=58.07%
+2025-12-16 14:06:30,773 | INFO | [pred] lasso#1: per-day mse days=20 p50=1.05389 p90=12.7976 p99=20.4686 max=22.1603
+2025-12-16 14:06:30,774 | INFO | [pred] lasso#2: n=396 R2_OS=0.08035 mse=4.98089 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.169 std=0.251 p1=-0.267 p99=0.763
+2025-12-16 14:06:30,774 | INFO | [pred] lasso#2: |err| q99=11.1341  tail_n=4/396  tail_share_SSE=58.05%
+2025-12-16 14:06:30,776 | INFO | [pred] lasso#2: per-day mse days=20 p50=1.05472 p90=12.8014 p99=20.4832 max=22.1763
+2025-12-16 14:06:30,776 | INFO | [pred] elasticnet#1: n=396 R2_OS=0.08253 mse=4.96909 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.161 std=0.266 p1=-0.286 p99=0.833
+2025-12-16 14:06:30,776 | INFO | [pred] elasticnet#1: |err| q99=11.0742  tail_n=4/396  tail_share_SSE=58.12%
+2025-12-16 14:06:30,778 | INFO | [pred] elasticnet#1: per-day mse days=20 p50=1.05695 p90=12.7838 p99=20.3728 max=22.0461
+2025-12-16 14:06:30,778 | INFO | [pred] elasticnet#2: n=396 R2_OS=0.08376 mse=4.96245 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.156 std=0.276 p1=-0.298 p99=0.849
+2025-12-16 14:06:30,779 | INFO | [pred] elasticnet#2: |err| q99=11.0347  tail_n=4/396  tail_share_SSE=58.17%
+2025-12-16 14:06:30,780 | INFO | [pred] elasticnet#2: per-day mse days=20 p50=1.05963 p90=12.7736 p99=20.3057 max=21.9657
+2025-12-16 14:06:30,781 | INFO | [pred] pcr#1: n=396 R2_OS=0.04064 mse=5.19601 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.0959 std=0.157 p1=-0.24 p99=0.474
+2025-12-16 14:06:30,781 | INFO | [pred] pcr#1: |err| q99=11.5726  tail_n=4/396  tail_share_SSE=57.07%
+2025-12-16 14:06:30,783 | INFO | [pred] pcr#1: per-day mse days=20 p50=1.19767 p90=13.1591 p99=21.8363 max=23.5474
+2025-12-16 14:06:30,783 | INFO | [pred] pcr#2: n=396 R2_OS=0.04064 mse=5.19601 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.0959 std=0.157 p1=-0.24 p99=0.474
+2025-12-16 14:06:30,784 | INFO | [pred] pcr#2: |err| q99=11.5726  tail_n=4/396  tail_share_SSE=57.07%
+2025-12-16 14:06:30,785 | INFO | [pred] pcr#2: per-day mse days=20 p50=1.19767 p90=13.1591 p99=21.8363 max=23.5474
+2025-12-16 14:06:30,786 | INFO | [pred] pls#1: n=396 R2_OS=0.12158 mse=4.75764 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.599 std=0.427 p1=-0.118 p99=1.52
+2025-12-16 14:06:30,786 | INFO | [pred] pls#1: |err| q99=10.7669  tail_n=4/396  tail_share_SSE=55.46%
+2025-12-16 14:06:30,788 | INFO | [pred] pls#1: per-day mse days=20 p50=1.31215 p90=12.1732 p99=18.3293 max=19.637
+2025-12-16 14:06:30,788 | INFO | [pred] pls#2: n=396 R2_OS=0.15052 mse=4.60089 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.342 std=0.608 p1=-0.732 p99=1.69
+2025-12-16 14:06:30,788 | INFO | [pred] pls#2: |err| q99=11.1155  tail_n=4/396  tail_share_SSE=55.12%
+2025-12-16 14:06:30,790 | INFO | [pred] pls#2: per-day mse days=20 p50=1.22107 p90=11.5193 p99=19.4446 max=21.0909
+2025-12-16 14:06:30,791 | INFO | [pred] L-En: n=396 R2_OS=0.09490 mse=4.90213 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.204 std=0.292 p1=-0.275 p99=0.801
+2025-12-16 14:06:30,791 | INFO | [pred] L-En: |err| q99=11.0965  tail_n=4/396  tail_share_SSE=57.93%
+2025-12-16 14:06:30,793 | INFO | [pred] L-En: per-day mse days=20 p50=1.11128 p90=12.6242 p99=20.2288 max=21.8467
+2025-12-16 14:06:30,795 | INFO | [pred] ffn#1: n=396 R2_OS=0.17162 mse=4.48659 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.37 std=0.602 p1=-0.399 p99=1.93
+2025-12-16 14:06:30,795 | INFO | [pred] ffn#1: |err| q99=10.4863  tail_n=4/396  tail_share_SSE=55.68%
+2025-12-16 14:06:30,797 | INFO | [pred] ffn#1: per-day mse days=20 p50=1.11108 p90=11.4318 p99=17.8248 max=19.1094
+2025-12-16 14:06:30,798 | INFO | [pred] ffn#2: n=396 R2_OS=0.17118 mse=4.48897 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.369 std=0.603 p1=-0.4 p99=1.94
+2025-12-16 14:06:30,799 | INFO | [pred] ffn#2: |err| q99=10.5033  tail_n=4/396  tail_share_SSE=55.64%
+2025-12-16 14:06:30,800 | INFO | [pred] ffn#2: per-day mse days=20 p50=1.12915 p90=11.4279 p99=17.8514 max=19.1456
+2025-12-16 14:06:30,823 | INFO | [pred] rf#1: n=396 R2_OS=0.19917 mse=4.3374 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.543 std=0.723 p1=-0.0849 p99=2.66
+2025-12-16 14:06:30,823 | INFO | [pred] rf#1: |err| q99=10.6991  tail_n=4/396  tail_share_SSE=53.01%
+2025-12-16 14:06:30,825 | INFO | [pred] rf#1: per-day mse days=20 p50=1.37207 p90=10.7722 p99=16.6647 max=17.8168
+2025-12-16 14:06:30,848 | INFO | [pred] rf#2: n=396 R2_OS=0.18570 mse=4.41036 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.462 std=0.66 p1=-0.093 p99=2.37
+2025-12-16 14:06:30,848 | INFO | [pred] rf#2: |err| q99=10.9841  tail_n=4/396  tail_share_SSE=54.07%
+2025-12-16 14:06:30,850 | INFO | [pred] rf#2: per-day mse days=20 p50=1.27669 p90=11.1188 p99=17.5948 max=18.7435
+2025-12-16 14:06:30,851 | INFO | [pred] lgbm_gbdt#1: n=396 R2_OS=0.13778 mse=4.66988 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.238 std=0.394 p1=-0.183 p99=1.46
+2025-12-16 14:06:30,851 | INFO | [pred] lgbm_gbdt#1: |err| q99=11.3612  tail_n=4/396  tail_share_SSE=56.68%
+2025-12-16 14:06:30,853 | INFO | [pred] lgbm_gbdt#1: per-day mse days=20 p50=1.21566 p90=12.3203 p99=19.3597 max=20.616
+2025-12-16 14:06:30,854 | INFO | [pred] lgbm_gbdt#2: n=396 R2_OS=0.12522 mse=4.7379 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.309 std=0.42 p1=-0.0343 p99=1.41
+2025-12-16 14:06:30,854 | INFO | [pred] lgbm_gbdt#2: |err| q99=11.3235  tail_n=4/396  tail_share_SSE=56.68%
+2025-12-16 14:06:30,856 | INFO | [pred] lgbm_gbdt#2: per-day mse days=20 p50=1.19751 p90=12.0865 p99=18.9541 max=20.5352
+2025-12-16 14:06:30,857 | INFO | [pred] lgbm_dart#1: n=396 R2_OS=0.18306 mse=4.42462 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.358 std=0.615 p1=-0.151 p99=2.03
+2025-12-16 14:06:30,857 | INFO | [pred] lgbm_dart#1: |err| q99=11.0325  tail_n=4/396  tail_share_SSE=55.43%
+2025-12-16 14:06:30,859 | INFO | [pred] lgbm_dart#1: per-day mse days=20 p50=1.24152 p90=11.3254 p99=17.3335 max=18.649
+2025-12-16 14:06:30,860 | INFO | [pred] lgbm_dart#2: n=396 R2_OS=0.19789 mse=4.3443 mse0=5.4161 | y mean=0.493 std=2.28 | yhat mean=0.465 std=0.751 p1=-0.207 p99=2.44
+2025-12-16 14:06:30,860 | INFO | [pred] lgbm_dart#2: |err| q99=10.3877  tail_n=4/396  tail_share_SSE=52.99%
+2025-12-16 14:06:30,862 | INFO | [pred] lgbm_dart#2: per-day mse days=20 p50=1.69788 p90=10.7891 p99=15.6376 max=16.6962
+2025-12-16 14:06:42,204 | INFO | Wrote expanding predictions: results/dh_ret/all-all/IB/predictions_expanding.csv
+2025-12-16 14:06:42,205 | INFO | [Selection] Choosing best model variant per family based on Aggregate R2_OS:
+2025-12-16 14:06:42,205 | INFO |   > Family L-En: Winner=L-En (R2=0.0803)
+2025-12-16 14:06:42,205 | INFO |   > Family N-En: Winner=N-En (R2=0.1364)
+2025-12-16 14:06:42,205 | INFO |   > Family elasticnet: Winner=elasticnet#2 (R2=0.0658) | Dropped=['elasticnet#1']
+2025-12-16 14:06:42,205 | INFO |   > Family ffn: Winner=ffn#2 (R2=0.1247) | Dropped=['ffn#1']
+2025-12-16 14:06:42,205 | INFO |   > Family lasso: Winner=lasso#1 (R2=0.0658) | Dropped=['lasso#2']
+2025-12-16 14:06:42,205 | INFO |   > Family lgbm_dart: Winner=lgbm_dart#1 (R2=0.1411) | Dropped=['lgbm_dart#2']
+2025-12-16 14:06:42,205 | INFO |   > Family lgbm_gbdt: Winner=lgbm_gbdt#1 (R2=0.1163) | Dropped=['lgbm_gbdt#2']
+2025-12-16 14:06:42,205 | INFO |   > Family pcr: Winner=pcr#1 (R2=0.0419) | Dropped=['pcr#2']
+2025-12-16 14:06:42,205 | INFO |   > Family pls: Winner=pls#2 (R2=0.1240) | Dropped=['pls#1']
+2025-12-16 14:06:42,205 | INFO |   > Family rf: Winner=rf#1 (R2=0.1494) | Dropped=['rf#2']
+2025-12-16 14:06:42,205 | INFO |   > Family ridge: Winner=ridge#2 (R2=0.0717) | Dropped=['ridge#1']
+2025-12-16 14:06:50,980 | INFO | [SHAP] Generating plots for subset: all (n=396)
+2025-12-16 14:07:18,044 | INFO | [SHAP] Generating plots for subset: dte_1_7 (n=64)
+2025-12-16 14:07:36,501 | INFO | [SHAP] Generating plots for subset: dte_8_31 (n=332)
+2025-12-16 14:08:01,840 | INFO | [SHAP] Skipping subset itm (n=8 too small)
+2025-12-16 14:08:01,840 | INFO | [SHAP] Generating plots for subset: atm (n=214)
+2025-12-16 14:08:20,559 | INFO | [SHAP] Generating plots for subset: otm (n=174)
+2025-12-16 14:08:40,638 | INFO | Variant complete (expanding monthly). Yay! :)

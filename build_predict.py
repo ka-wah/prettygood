@@ -17,13 +17,13 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 # ------------------------------ CONFIGURATION ------------------------------
 # FOLDER = "zeronon-spread0.5-midfloor1.0-futuset"  # align with your YAML paths
-FOLDER = "spread0.8"
+FOLDER = "spread0.8-week031-oi"
 SPREADMAX = 0.8
 
 CONFIG = {
     "paths": {
         "standard_dir": Path("data"),
-        "options": "options.csv",
+        "options": "options_0_31.csv",
         "google_trends": "google_trends-long.csv",
         "reddit": "reddit_daily.csv",
         "rtrs": "rtrs_sentiment.csv",
@@ -47,7 +47,7 @@ CONFIG = {
     "DIST_SUMMARY_CSV": Path(f"{FOLDER}") / "y_price_distribution_summary.csv",
     "INTEGRITY_CSV": Path(f"{FOLDER}") / "daily_integrity_modeling_panel.csv",
 
-    "dte_min": 1,
+    "dte_min": 0,
     "dte_max": 31,
     "use_sofr": True,
 
@@ -685,8 +685,12 @@ def build_panel() -> pd.DataFrame:
             (safe_numeric_col(opt, "openinterest") > 0)
         )
     )
+    # mask = (
+    #     (opt["dte"] >= CONFIG["dte_min"]) & 
+    #     (opt["dte"] <= CONFIG["dte_max"]))
     opt = opt[mask].copy()
     n_after_dte = len(opt)
+    print(f"[INFO] After DTE ({CONFIG['dte_min']}-{CONFIG['dte_max']}) filter: {n_after_dte} rows")
 
     # futures series (FIXED)
     futures_core = build_futures_series_robust(opt)  # date, F_t, F_tp1
@@ -765,6 +769,14 @@ def build_panel() -> pd.DataFrame:
 
     idcol = "optionid" if "optionid" in df.columns else "optionsymbol"
     df = df.sort_values([idcol, "date"])
+
+    # # Liquidity screen: require each contract to have traded (volume>0) at least once in the past week
+    # df["volume"] = to_num(df.get("volume", np.nan))
+    # vol_pos_7d = df.groupby(idcol)["volume"].transform(lambda s: s.rolling(14, min_periods=1).max())
+    # df = df[vol_pos_7d > 0].copy()
+    n_after_volumeweek = len(df)
+    print(f"[INFO] After liquidity volume filter: {n_after_volumeweek} rows")
+
     for pfx in ["_src", "_model"]:
         for base in ["delta", "gamma", "vega", "theta", "rho"]:
             col_name = f"{base}{pfx}"
@@ -1507,6 +1519,7 @@ def build_panel() -> pd.DataFrame:
             "stage": [
                 "raw_options_loaded",
                 "after_dte_filter_1_31",
+                "after_volume_week_filter",
                 "post_merge_panel_rows",
                 "has_mid_t",
                 "has_iv",
@@ -1518,6 +1531,7 @@ def build_panel() -> pd.DataFrame:
             "count": [
                 n_raw_opt,
                 n_after_dte,
+                n_after_volumeweek,
                 len(df),
                 has_mid_t.sum(),
                 has_iv.sum(),
@@ -1666,6 +1680,12 @@ def build_panel() -> pd.DataFrame:
         dates = pd.to_datetime(df_out["date"])
         print(f"[MICRO_DOC] Final: {len(df_out)} rows, {dates.nunique()} days ({dates.min().date()} to {dates.max().date()})")
 
+    # print how many observations per DTE from 0 - 3 DTE
+    if "dte" in df_out.columns:
+        dte_counts = df_out["dte"].value_counts().sort_index()
+        print("[DTE_COUNTS] Observations per DTE:")
+        for dte, count in dte_counts.items():
+            print(f"  DTE={dte:2d}: {count:6d} observations")
     return df_out
 
 if __name__ == "__main__":
