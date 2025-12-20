@@ -2,9 +2,9 @@
 library(tidyverse)
 
 # --- user inputs ---
-#base_dir  <- "C:/Users/kawah/bitcoining/big_results"
-base_dir = "C:/Users/kawah/Documents/bitcoining/results/y_price"
-spec_dir  <- "IBMCTINTERACTIONS"   # change if you switch spec
+base_dir   <- "C:/Users/kawah/prettygood/cleanrepo/results/dh_ret"
+spec_dir   <- "IBMCTINTERACTIONS" 
+
 group_dirs <- c(All = "all-all", Call = "call-all", Put = "put-all")
 
 
@@ -41,7 +41,7 @@ cw_stars <- function(t){
 
 
 read_one_group <- function(base_dir, group_dir, spec_dir){
-  f <- file.path(base_dir, group_dir, spec_dir, "metrics_returns.csv")
+  f <- file.path(base_dir, group_dir, spec_dir, "metrics.csv")
   read_csv(f, show_col_types = FALSE) |>
     mutate(group = names(group_dirs)[group_dirs == group_dir])
 }
@@ -56,6 +56,17 @@ raw <- map_dfr(unname(group_dirs), ~read_one_group(base_dir, .x, spec_dir)) |>
     CW_t_XS   = CW_t_XS          # must exist in metrics_target.csv
   ) |>
   mutate(model = pretty_model(model_raw))
+
+# --- load + tidy ---
+# raw <- map_dfr(unname(group_dirs), ~read_one_group(base_dir, .x, spec_dir)) |>
+#   rename(
+#     model_raw = model,
+#     R2_OS     = R2_OS_w,
+#     R2_OS_XS  = R2_OS_w_XS,
+#     CW_t      = CW_t_w,
+#     CW_t_XS   = CW_t_w_XS      # must exist in metrics_target.csv
+#   ) |>
+#   mutate(model = pretty_model(model_raw))
 
 raw <- raw |>
   filter(model != "NN-En")
@@ -94,7 +105,7 @@ metrics <- metrics |>
   )
 
 # --- plotting style ---
-fill_vals <- c("Call" = "#D2FFFB", "Put" = "#CBCBCB", "All" = "#966A46")
+fill_vals <- c("Call" = "#EC9AC0", "Put" = "#6A8474", "All" = "#505679")
 
 theme_paper <- theme_classic(base_size = 12) +
   theme(
@@ -128,9 +139,9 @@ p1 <- ggplot(metrics, aes(x = model, y = R2_OS, fill = group)) +
     size = 4,
     inherit.aes = FALSE
   ) +
-  labs(y = expression(R[OS]^2)) +
+  labs(y = expression(R[RAW]^2)) +
   theme_paper +
-  coord_cartesian(ylim = c(-0.02, 0.12))   # <-- choose ymin, ymax here
+  coord_cartesian(ylim = c(-0.02, 0.17))   # <-- choose ymin, ymax here
 
 
 # ============================================================
@@ -155,9 +166,9 @@ p2 <- ggplot(metrics, aes(x = model, y = R2_OS_XS, fill = group)) +
     size = 4,
     inherit.aes = FALSE
   ) +
-  labs(y = expression(R[OSXS]^2)) +
+  labs(y = expression(R[RAWXS]^2)) +
   theme_paper +
-  coord_cartesian(ylim = c(-0.02, 0.075))   # <-- and here
+  coord_cartesian(ylim = c(-0.02, 0.15))   # <-- and here
 
 
 # --- save (optional) ---
