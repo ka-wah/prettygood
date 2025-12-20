@@ -60,7 +60,7 @@ MNY_BUCKETS = ["all", "otm", "itm", "atm"]
 GROUPS = ["I", "B", "M", "C", "T", "INTERACTIONS"]
 CONFIG_PATH = "./ew-big.yaml"
 
-SHORT = '0.8-spread/dhinput.parquet'
+SHORT = 'spread0.8/dhinput.parquet'
 ULTRA = 'inputs/ultra.parquet'
 
 
